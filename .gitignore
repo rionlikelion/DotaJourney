@@ -1,0 +1,11 @@
+config.json
+data/
+clips/**
+!clips/.gitkeep
+frontend/node_modules/
+frontend/dist/
+server/node_modules/
+__pycache__/
+*.pyc
+.Python
+*.log

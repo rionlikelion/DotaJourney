@@ -1,0 +1,2 @@
+dota2api @ git+https://github.com/joshuaduffy/dota2api.git
+requests>=2.31.0
