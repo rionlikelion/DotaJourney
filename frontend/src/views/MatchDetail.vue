@@ -34,6 +34,8 @@ const form = ref({
   is_milestone: false,
   tags: '',
 })
+const mmrDeltaInput = ref('')
+const isEditingMmrDelta = ref(false)
 
 const MEDALS = [
   'Herald 1','Herald 2','Herald 3','Herald 4','Herald 5',
@@ -48,6 +50,50 @@ const mmrDelta = computed(() => {
   if (b == null || a == null || b === '' || a === '') return null
   return Number(a) - Number(b)
 })
+
+function syncMmrDeltaInput() {
+  if (form.value.mmr_before == null || form.value.mmr_before === '' || form.value.mmr_after == null || form.value.mmr_after === '') {
+    mmrDeltaInput.value = ''
+    return
+  }
+
+  const delta = Number(form.value.mmr_after) - Number(form.value.mmr_before)
+  mmrDeltaInput.value = Number.isFinite(delta) ? String(delta) : ''
+}
+
+function handleMmrDeltaInput(event) {
+  const rawValue = event.target.value
+  isEditingMmrDelta.value = true
+
+  if (rawValue === '' || rawValue === '-' || rawValue === '+') {
+    return
+  }
+
+  const delta = Number(rawValue)
+  if (!Number.isFinite(delta) || !Number.isInteger(delta)) {
+    return
+  }
+
+  if (form.value.mmr_before == null || form.value.mmr_before === '') {
+    return
+  }
+
+  form.value.mmr_after = Number(form.value.mmr_before) + delta
+}
+
+function handleMmrDeltaBlur() {
+  isEditingMmrDelta.value = false
+  syncMmrDeltaInput()
+}
+
+watch(
+  [() => form.value.mmr_before, () => form.value.mmr_after],
+  () => {
+    if (isEditingMmrDelta.value) return
+    syncMmrDeltaInput()
+  },
+  { immediate: true }
+)
 
 watch(mmrDelta, (d) => {
   if (d === 0 && form.value.mmr_before != null && form.value.mmr_after != null) {
@@ -141,7 +187,13 @@ onMounted(load)
 
     <div class="card row">
       <div class="stat">
-        <div class="value">{{ data.match.my_kills }}/{{ data.match.my_deaths }}/{{ data.match.my_assists }}</div>
+        <div class="value">
+          <span class="value-success">{{ data.match.my_kills }}</span>
+          <span class="muted">/</span>
+          <span class="value-danger">{{ data.match.my_deaths }}</span>
+          <span class="muted">/</span>
+          <span class="value-muted">{{ data.match.my_assists }}</span>
+        </div>
         <div class="label">KDA</div>
       </div>
       <div class="stat" v-if="data.players.find((p) => p.is_me)">
@@ -207,10 +259,12 @@ onMounted(load)
         <div class="form-group">
           <label>MMR change</label>
           <input
-            :value="mmrDelta != null ? mmrDelta : '—'"
-            type="text"
-            readonly
-            style="opacity: 0.8"
+            v-model="mmrDeltaInput"
+            type="number"
+            step="1"
+            inputmode="numeric"
+            @input="handleMmrDeltaInput"
+            @blur="handleMmrDeltaBlur"
           />
         </div>
       </div>
@@ -281,7 +335,13 @@ onMounted(load)
                 {{ p.hero_name }}{{ p.is_me ? ' (you)' : '' }}
               </span>
             </td>
-            <td>{{ p.kills }}/{{ p.deaths }}/{{ p.assists }}</td>
+            <td>
+              <span class="value-success">{{ p.kills }}</span>
+              <span class="muted">/</span>
+              <span class="value-danger">{{ p.deaths }}</span>
+              <span class="muted">/</span>
+              <span class="value-muted">{{ p.assists }}</span>
+            </td>
             <td>{{ p.gold_per_min }}</td>
             <td>{{ p.xp_per_min }}</td>
           </tr>

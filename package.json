@@ -1,0 +1,17 @@
+{
+  "name": "rion-dota-journey",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Rion Dota Journey workspace",
+  "workspaces": [
+    "server",
+    "frontend"
+  ],
+  "scripts": {
+    "bootstrap": "npm install --workspaces",
+    "dev:server": "npm --workspace server run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "build:frontend": "npm --workspace frontend run build",
+    "start:server": "npm --workspace server run start"
+  }
+}

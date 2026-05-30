@@ -9,9 +9,30 @@ import { listClips, resolveClipPath } from './clips.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const MEDAL_ORDER = {
+  Herald: 1,
+  Guardian: 2,
+  Crusader: 3,
+  Archon: 4,
+  Legend: 5,
+}
+
+function parseMedal(medal) {
+  if (!medal) return null
+  const match = medal.trim().match(/^([A-Za-z]+)\s+([1-5])$/)
+  if (!match) return null
+
+  const tier = MEDAL_ORDER[match[1]]
+  const star = Number(match[2])
+  return tier ? { tier, star } : null
+}
+
 function medalRankUp(before, after) {
-  if (!before || !after) return false
-  return after.trim().toLowerCase() !== before.trim().toLowerCase()
+  const b = parseMedal(before)
+  const a = parseMedal(after)
+  if (!b || !a) return false
+  if (a.tier !== b.tier) return a.tier > b.tier
+  return a.star > b.star
 }
 
 function enrichAnnotation(row) {
@@ -31,8 +52,7 @@ function getPreviousCompletedAnnotation(db, matchId) {
         `SELECT match_id, mmr_after, medal_after
          FROM match_annotations
          WHERE match_id < ?
-           AND mmr_after IS NOT NULL
-           AND medal_after IS NOT NULL
+           AND (mmr_after IS NOT NULL OR medal_after IS NOT NULL)
          ORDER BY match_id DESC
          LIMIT 1`
       )
@@ -43,14 +63,14 @@ function getPreviousCompletedAnnotation(db, matchId) {
 function prepopulateMatchBeforeValues(annotation, db, matchId) {
   const existing = annotation ? { ...annotation } : {}
   const needsMmrBefore = existing.mmr_before == null
-  const needsMedalBefore = !existing.medal_before
+  const needsMedalBefore = existing.medal_before == null
   if (!needsMmrBefore && !needsMedalBefore) return existing
 
   const prev = getPreviousCompletedAnnotation(db, matchId)
   if (!prev) return existing
 
-  if (needsMmrBefore) existing.mmr_before = prev.mmr_after
-  if (needsMedalBefore) existing.medal_before = prev.medal_after
+  if (needsMmrBefore && prev.mmr_after != null) existing.mmr_before = prev.mmr_after
+  if (needsMedalBefore && prev.medal_after != null) existing.medal_before = prev.medal_after
   return existing
 }
 
@@ -92,42 +112,17 @@ export function createRouter() {
       cwd: ROOT,
       shell: true,
     })
+
     let out = ''
     let err = ''
-    py.stdout.on('data', (d) => { out += d })
-    py.stderr.on('data', (d) => { err += d })
+    req.setTimeout(0)
+    py.stdout.on('data', (d) => { out += d.toString() })
+    py.stderr.on('data', (d) => { err += d.toString() })
     py.on('close', (code) => {
       if (code !== 0) {
         return res.status(500).json({ ok: false, detail: err || out || `exit ${code}` })
       }
       res.json({ ok: true, message: out.trim() || 'Sync complete' })
-    })
-  })
-
-  router.post('/reset', (req, res) => {
-    const db = getDb()
-    db.prepare('DELETE FROM match_annotations').run()
-    db.prepare('DELETE FROM match_players').run()
-    db.prepare('DELETE FROM match_pick_bans').run()
-    db.prepare('DELETE FROM match_ability_upgrades').run()
-    db.prepare('DELETE FROM match_additional_units').run()
-    db.prepare('DELETE FROM matches').run()
-    db.prepare('DELETE FROM sync_state').run()
-    db.prepare('VACUUM').run()
-
-    const py = spawn('python', ['run_sync.py', '--force'], {
-      cwd: ROOT,
-      shell: true,
-    })
-    let out = ''
-    let err = ''
-    py.stdout.on('data', (d) => { out += d })
-    py.stderr.on('data', (d) => { err += d })
-    py.on('close', (code) => {
-      if (code !== 0) {
-        return res.status(500).json({ ok: false, detail: err || out || `exit ${code}` })
-      }
-      res.json({ ok: true, message: out.trim() || 'Reset + resync complete' })
     })
   })
 
@@ -170,23 +165,29 @@ export function createRouter() {
     const rows = db
       .prepare(
         `
-        SELECT m.*, a.diary_entry, a.mmr_delta, a.medal_before, a.medal_after,
-               a.is_calibration, a.is_milestone, a.role_played,
+        SELECT m.*, a.diary_entry, a.mmr_before, a.mmr_after, a.mmr_delta,
+               a.medal_before, a.medal_after, a.is_calibration, a.is_milestone, a.role_played,
                COALESCE(a.role_played, m.my_role) AS effective_role
         FROM matches m
         LEFT JOIN match_annotations a ON a.match_id = m.match_id
         WHERE ${clauses.join(' AND ')}
         ORDER BY ${sortCol} ${ord}
-        LIMIT ? OFFSET ?
       `
       )
-      .all(...params, limit, offset)
+      .all(...params)
 
-    let matches = rows.map((m) => ({
-      ...m,
-      has_clips: listClips(m.match_id).length > 0,
-      clip_count: listClips(m.match_id).length,
-    }))
+    let matches = rows.map((m) => {
+      const clips = listClips(m.match_id) || []
+      const clipCount = clips.length
+      return {
+        ...m,
+        has_clips: clipCount > 0,
+        clip_count: clipCount,
+        rank_up: medalRankUp(m.medal_before, m.medal_after),
+        has_diary: !!((m.diary_entry || '').toString().trim()),
+        is_milestone: !!m.is_milestone,
+      }
+    })
 
     if (req.query.has_clips === 'true') {
       matches = matches.filter((m) => m.has_clips)
@@ -194,7 +195,26 @@ export function createRouter() {
       matches = matches.filter((m) => !m.has_clips)
     }
 
-    res.json({ matches, count: matches.length })
+    if (req.query.has_diary === 'false') {
+      matches = matches.filter((m) => !m.has_diary)
+    }
+
+    if (req.query.is_milestone === 'true') {
+      matches = matches.filter((m) => m.is_milestone)
+    } else if (req.query.is_milestone === 'false') {
+      matches = matches.filter((m) => !m.is_milestone)
+    }
+
+    if (req.query.rank_up === 'true') {
+      matches = matches.filter((m) => m.rank_up)
+    } else if (req.query.rank_up === 'false') {
+      matches = matches.filter((m) => !m.rank_up)
+    }
+
+    const count = matches.length
+    const pagedMatches = matches.slice(offset, offset + limit)
+
+    res.json({ matches: pagedMatches, count })
   })
 
   router.get('/matches/:matchId', (req, res) => {
@@ -433,15 +453,20 @@ export function createRouter() {
       )
       .get().c
 
-    const latest = rowToObject(
-      db
-        .prepare(
-          `SELECT medal_after, mmr_after FROM match_annotations
-           WHERE medal_after IS NOT NULL OR mmr_after IS NOT NULL
-           ORDER BY updated_at DESC LIMIT 1`
-        )
-        .get()
-    )
+    // Use the annotation for the most recent match by match_id (greatest id)
+    const lastMatch = db.prepare('SELECT MAX(match_id) AS max_id FROM matches').get()
+    const lastMatchId = lastMatch ? lastMatch.max_id : null
+    let latest = null
+    if (lastMatchId != null) {
+      latest = rowToObject(
+        db
+          .prepare(
+            `SELECT medal_after, mmr_after FROM match_annotations
+             WHERE match_id = ?`
+          )
+          .get(lastMatchId)
+      )
+    }
 
     const total = base.total || 0
     const wins = base.wins || 0

@@ -32,27 +32,21 @@ python -m pip install --user -r requirements.txt
 
 > The Python backend is only used for match sync. It does not host the frontend or the REST API.
 
-### 3. Node (API)
+### 3. Node workspace
 
 ```powershell
-cd server
-npm install
+npm run bootstrap
 ```
 
-### 4. Frontend
+This installs dependencies from the root workspace so `server/` and `frontend/` are managed together.
 
-```powershell
-cd frontend
-npm install
-```
-
-### 5. One-command start
+### 4. One-command start
 
 ```powershell
 .\start.ps1
 ```
 
-Stops old servers on 8000/5173, runs `python run_sync.py`, then starts **Node API** + **Vite**.
+Stops old servers on 8000/5173, starts **Node API** + **Vite** immediately, and runs `python run_sync.py` in the background. Sync logs are written to `logs/sync.stdout.log` and `logs/sync.stderr.log`.
 
 Open http://localhost:5173
 
@@ -60,20 +54,17 @@ Open http://localhost:5173
 
 ```powershell
 python run_sync.py
-cd server
-npm run dev
+npm run dev:server
+npm run dev:frontend
 ```
 
-```powershell
-cd frontend
-npm run dev
-```
+The API and frontend are both managed through the root workspace. Use `npm run sync` for Python-only sync runs.
 
 ### Deploy as a Node site
 
 ```powershell
-cd frontend && npm run build
-cd ../server && npm start
+npm run build:frontend
+npm run start:server
 ```
 
 Serves API and the built Vue app from `frontend/dist` on port 8000.

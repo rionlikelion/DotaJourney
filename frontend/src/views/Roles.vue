@@ -41,9 +41,29 @@ onMounted(async () => {
             }}</strong>
           </td>
           <td>{{ r.games }}</td>
-          <td>{{ (r.win_rate * 100).toFixed(0) }}%</td>
-          <td>{{ r.avg_kills }}/{{ r.avg_deaths }}/{{ r.avg_assists }}</td>
-          <td>{{ r.avg_mmr_delta ?? '—' }}</td>
+          <td
+            :class="{
+              'value-success': (r.win_rate * 100) >= 50,
+              'value-danger': (r.win_rate * 100) < 50,
+            }"
+          >
+            {{ (r.win_rate * 100).toFixed(0) }}%
+          </td>
+          <td>
+            <span class="value-success">{{ r.avg_kills }}</span>
+            <span class="muted">/</span>
+            <span class="value-danger">{{ r.avg_deaths }}</span>
+            <span class="muted">/</span>
+            <span class="value-muted">{{ r.avg_assists }}</span>
+          </td>
+          <td
+            :class="{
+              'value-success': r.avg_mmr_delta > 0,
+              'value-danger': r.avg_mmr_delta < 0,
+            }"
+          >
+            {{ r.avg_mmr_delta ?? '—' }}
+          </td>
           <td>{{ r.calibration_games }}</td>
         </tr>
       </tbody>

@@ -1,12 +1,40 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { api } from '../api/client'
 import RankChart from '../components/RankChart.vue'
 
 const summary = ref(null)
 const rankPoints = ref([])
 const error = ref(null)
-const syncing = ref(false)
+
+const RANK_ICON_BASE = 'https://www.opendota.com/assets/images/dota2/rank_icons'
+const MEDAL_ICON_INDEX = {
+  Herald: 1,
+  Guardian: 2,
+  Crusader: 3,
+  Archon: 4,
+  Legend: 5,
+}
+
+function getMedalInfo(medal) {
+  if (!medal) return null
+  const match = medal.trim().match(/^([A-Za-z]+)\s+([1-5])$/)
+  if (!match) return null
+
+  const tier = match[1]
+  const star = match[2]
+  const iconId = MEDAL_ICON_INDEX[tier]
+  if (!iconId) return null
+
+  return {
+    backgroundUrl: `${RANK_ICON_BASE}/rank_icon_${iconId}.png`,
+    starUrl: `${RANK_ICON_BASE}/rank_star_${star}.png`,
+  }
+}
+
+const latestMedalInfo = computed(() => {
+  return summary.value ? getMedalInfo(summary.value.latest_medal) : null
+})
 
 async function load() {
   error.value = null
@@ -19,32 +47,6 @@ async function load() {
   }
 }
 
-async function runSync() {
-  syncing.value = true
-  error.value = null
-  try {
-    await api.sync(false)
-    await load()
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    syncing.value = false
-  }
-}
-
-async function runReset() {
-  syncing.value = true
-  error.value = null
-  try {
-    await api.reset()
-    await load()
-  } catch (e) {
-    error.value = e.message
-  } finally {
-    syncing.value = false
-  }
-}
-
 onMounted(load)
 </script>
 
@@ -52,24 +54,24 @@ onMounted(load)
   <div>
     <div style="display: flex; justify-content: space-between; align-items: center">
       <h2>Dashboard</h2>
-      <div class="dashboard-actions" style="display: flex; gap: 0.75rem; align-items: center">
-        <button class="btn primary" :disabled="syncing" @click="runSync">
-          {{ syncing ? 'Syncing…' : 'Sync matches' }}
-        </button>
-        <button class="btn" :disabled="syncing" @click="runReset">
-          {{ syncing ? 'Resetting…' : 'Reset + resync' }}
-        </button>
-      </div>
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
 
     <div v-if="summary" class="card goal-card">
       <h3 style="margin-top: 0">Goal: {{ summary.goal_medal }}</h3>
-      <p>
-        Current:
-        <strong>{{ summary.latest_medal || '—' }}</strong>
-        <span v-if="summary.latest_mmr != null">
+      <p class="goal-current">
+        <span class="goal-current-label">Current:</span>
+        <template v-if="summary.latest_medal">
+          <span v-if="latestMedalInfo" class="medal-display">
+            <span class="medal-badge" :style="{ backgroundImage: `url(${latestMedalInfo.backgroundUrl})` }">
+              <img :src="latestMedalInfo.starUrl" :alt="summary.latest_medal" />
+            </span>
+          </span>
+          <strong v-else>{{ summary.latest_medal }}</strong>
+        </template>
+        <strong v-else>—</strong>
+        <span v-if="summary.latest_mmr != null" class="goal-current-mmr">
           · {{ summary.latest_mmr }} MMR
         </span>
       </p>
@@ -81,7 +83,15 @@ onMounted(load)
         <div class="label">Matches</div>
       </div>
       <div class="stat">
-        <div class="value">{{ (summary.win_rate * 100).toFixed(0) }}%</div>
+        <div
+          :class="{
+            'value-success': (summary.win_rate * 100) >= 50,
+            'value-danger': (summary.win_rate * 100) < 50,
+          }"
+          class="value"
+        >
+          {{ (summary.win_rate * 100).toFixed(0) }}%
+        </div>
         <div class="label">Win rate</div>
       </div>
       <div class="stat">

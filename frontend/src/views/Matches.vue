@@ -14,8 +14,37 @@ import {
 const matches = ref([])
 const error = ref(null)
 const heroOptions = ref([])
+
+const RANK_ICON_BASE = 'https://www.opendota.com/assets/images/dota2/rank_icons'
+const MEDAL_ICON_INDEX = {
+  Herald: 1,
+  Guardian: 2,
+  Crusader: 3,
+  Archon: 4,
+  Legend: 5,
+}
+
+function getMedalInfo(medal) {
+  if (!medal) return null
+  const match = medal.trim().match(/^([A-Za-z]+)\s+([1-5])$/)
+  if (!match) return null
+
+  const tier = match[1]
+  const star = match[2]
+  const iconId = MEDAL_ICON_INDEX[tier]
+  if (!iconId) return null
+
+  return {
+    backgroundUrl: `${RANK_ICON_BASE}/rank_icon_${iconId}.png`,
+    starUrl: `${RANK_ICON_BASE}/rank_star_${star}.png`,
+  }
+}
 const hero = ref('')
 const role = ref('')
+const hasClips = ref('')
+const hasDiary = ref('')
+const isMilestone = ref('')
+const rankUp = ref('')
 const page = ref(1)
 const pageSize = 50
 const hasNextPage = ref(false)
@@ -44,6 +73,10 @@ async function load() {
     }
     if (hero.value) params.hero = hero.value
     if (role.value) params.role = role.value
+    if (hasClips.value) params.has_clips = hasClips.value
+    if (hasDiary.value) params.has_diary = hasDiary.value
+    if (isMilestone.value) params.is_milestone = isMilestone.value
+    if (rankUp.value) params.rank_up = rankUp.value
     const data = await api.matches(params)
     matches.value = data.matches
     hasNextPage.value = data.matches.length === pageSize
@@ -66,7 +99,7 @@ function goToNextPage() {
   }
 }
 
-watch([hero, role], () => {
+watch([hero, role, hasClips, hasDiary, isMilestone, rankUp], () => {
   page.value = 1
   load()
 })
@@ -101,6 +134,38 @@ onMounted(async () => {
           </option>
         </select>
       </label>
+      <label>
+        Has clips
+        <select v-model="hasClips">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
+      <label>
+        Has diary
+        <select v-model="hasDiary">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
+      <label>
+        Milestone
+        <select v-model="isMilestone">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
+      <label>
+        Rank up
+        <select v-model="rankUp">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
     </div>
 
     <table v-if="matches.length" class="card" style="padding: 0; overflow: hidden">
@@ -111,7 +176,7 @@ onMounted(async () => {
           <th>KDA</th>
           <th>Role</th>
           <th>Rank before</th>
-          <th>MMR before</th>
+          <th>Rank after</th>
           <th>Result</th>
           <th>MMR Δ</th>
           <th></th>
@@ -121,7 +186,7 @@ onMounted(async () => {
         <tr v-for="m in matches" :key="m.match_id">
           <td>{{ formatDate(m.start_time) }}</td>
           <td>
-            <span class="hero-cell">
+            <RouterLink class="hero-cell" :to="`/matches/${m.match_id}`">
               <img
                 v-if="m.my_hero_id || m.my_hero_name"
                 :src="heroImageUrl(m.my_hero_id || m.my_hero_name)"
@@ -129,25 +194,70 @@ onMounted(async () => {
                 class="hero-icon"
               />
               <span>{{ m.my_hero_name || m.my_hero_id || '—' }}</span>
-            </span>
+            </RouterLink>
           </td>
-          <td>{{ m.my_kills }}/{{ m.my_deaths }}/{{ m.my_assists }}</td>
+          <td>
+            <span class="value-success">{{ m.my_kills }}</span>
+            <span class="muted">/</span>
+            <span class="value-danger">{{ m.my_deaths }}</span>
+            <span class="muted">/</span>
+            <span class="value-muted">{{ m.my_assists }}</span>
+          </td>
           <td>{{ roleLabel(m.my_role || m.role_played) }}</td>
-          <td>{{ m.medal_before || '—' }}</td>
-          <td>{{ m.mmr_before != null ? m.mmr_before : '—' }}</td>
+          <td>
+            <template v-if="m.medal_before">
+              <span v-if="getMedalInfo(m.medal_before)" class="medal-display small">
+                <span
+                  class="medal-badge medal-badge--small"
+                  :style="{ backgroundImage: `url(${getMedalInfo(m.medal_before).backgroundUrl})` }"
+                >
+                  <img :src="getMedalInfo(m.medal_before).starUrl" :alt="m.medal_before" />
+                </span>
+              </span>
+              <span v-else>{{ m.medal_before }}</span>
+            </template>
+            <span v-else>—</span>
+          </td>
+          <td>
+            <template v-if="m.medal_after">
+              <span v-if="getMedalInfo(m.medal_after)" class="medal-display small">
+                <span
+                  class="medal-badge medal-badge--small"
+                  :style="{ backgroundImage: `url(${getMedalInfo(m.medal_after).backgroundUrl})` }"
+                >
+                  <img :src="getMedalInfo(m.medal_after).starUrl" :alt="m.medal_after" />
+                </span>
+              </span>
+              <span v-else>{{ m.medal_after }}</span>
+            </template>
+            <span v-else>—</span>
+          </td>
           <td>
             <span :class="['badge', m.won ? 'win' : 'loss']">
               {{ m.won ? 'W' : 'L' }}
             </span>
           </td>
           <td>
-            <span v-if="m.mmr_delta != null">{{ m.mmr_delta >= 0 ? '+' : '' }}{{ m.mmr_delta }}</span>
+            <span
+              v-if="m.mmr_delta != null"
+              :class="{
+                'value-success': m.mmr_delta > 0,
+                'value-danger': m.mmr_delta < 0,
+              }"
+            >
+              {{ m.mmr_delta >= 0 ? '+' : '' }}{{ m.mmr_delta }}
+            </span>
             <span v-else>—</span>
           </td>
           <td>
             <span class="match-actions">
-              <span v-if="m.has_clips" class="badge clip">clip</span>
-              <RouterLink :to="`/matches/${m.match_id}`">View</RouterLink>
+              <span v-if="m.has_clips" class="badge clip">Clip</span>
+              <span
+                v-if="m.has_diary || m.is_milestone || m.rank_up"
+                :class="['badge', m.is_milestone || m.rank_up ? 'milestone' : 'diary']"
+              >
+                {{ m.has_diary ? 'Diary' : m.is_milestone ? 'Milestone' : m.rank_up ? 'Rank up' : '' }}
+              </span>
             </span>
           </td>
         </tr>
@@ -164,6 +274,6 @@ onMounted(async () => {
       </button>
     </div>
 
-    <p v-else-if="!error" class="muted">No matches synced yet.</p>
+    <p v-else-if="!error" class="muted">No matches found.</p>
   </div>
 </template>

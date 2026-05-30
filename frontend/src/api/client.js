@@ -15,8 +15,6 @@ async function request(path, options = {}) {
 export const api = {
   health: () => request('/api/health'),
   publicConfig: () => request('/api/config/public'),
-  sync: (force = false) =>
-    request(`/api/sync?force=${force}`, { method: 'POST' }),
   matches: (params = {}) => {
     const q = new URLSearchParams(params).toString()
     return request(`/api/matches?${q}`)
@@ -35,7 +33,6 @@ export const api = {
   summary: () => request('/api/stats/summary'),
   heroes: () => request('/api/stats/heroes'),
   heroMetadata: () => request('/api/hero-metadata'),
-  reset: () => request('/api/reset', { method: 'POST' }),
   roles: () => request('/api/stats/roles'),
   rankProgression: (includeCalibration = true) =>
     request(

@@ -8,6 +8,8 @@ export function getDb() {
     const cfg = loadConfig()
     db = new Database(cfg.databasePath)
     db.pragma('foreign_keys = ON')
+    db.pragma('busy_timeout = 5000')
+    db.pragma('journal_mode = WAL')
   }
   return db
 }

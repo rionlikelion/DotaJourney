@@ -26,8 +26,7 @@ onMounted(async () => {
           <th>Hero</th>
           <th>Games</th>
           <th>Win rate</th>
-          <th>Avg KDA</th>
-          <th>K / D / A</th>
+          <th>Avg K / D / A</th>
         </tr>
       </thead>
       <tbody>
@@ -44,9 +43,21 @@ onMounted(async () => {
             </span>
           </td>
           <td>{{ h.games }}</td>
-          <td>{{ (h.win_rate * 100).toFixed(0) }}%</td>
-          <td>{{ h.avg_kda }}</td>
-          <td>{{ h.avg_kills }} / {{ h.avg_deaths }} / {{ h.avg_assists }}</td>
+          <td
+            :class="{
+              'value-success': (h.win_rate * 100) >= 50,
+              'value-danger': (h.win_rate * 100) < 50,
+            }"
+          >
+            {{ (h.win_rate * 100).toFixed(0) }}%
+          </td>
+          <td>
+            <span class="value-success">{{ h.avg_kills }}</span>
+            <span class="muted">/</span>
+            <span class="value-danger">{{ h.avg_deaths }}</span>
+            <span class="muted">/</span>
+            <span class="value-muted">{{ h.avg_assists }}</span>
+          </td>
         </tr>
       </tbody>
     </table>

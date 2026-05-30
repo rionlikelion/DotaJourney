@@ -7,15 +7,24 @@ import { createRouter } from './routes.js'
 import { resolveClipPath } from './clips.js'
 
 // This Node server hosts the REST API and frontend static assets.
-// Python is only used for the sync process via run_sync.py.
 
 const cfg = loadConfig()
 fs.mkdirSync(cfg.clipsDirectory, { recursive: true })
 
 const app = express()
+const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
+const allowAllOrigins = process.env.CORS_ALLOW_ALL === '1'
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowAllOrigins
+      ? true
+      : (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true)
+          } else {
+            callback(new Error('Not allowed by CORS'))
+          }
+        },
   })
 )
 
@@ -40,6 +49,7 @@ if (fs.existsSync(path.join(dist, 'index.html'))) {
 }
 
 const PORT = process.env.PORT || 8000
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`Rion Dota Journey API http://127.0.0.1:${PORT}`)
+const HOST = process.env.HOST || '0.0.0.0'
+app.listen(PORT, HOST, () => {
+  console.log(`Rion Dota Journey API http://${HOST === '0.0.0.0' ? '127.0.0.1' : HOST}:${PORT}`)
 })

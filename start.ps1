@@ -1,10 +1,5 @@
-# Stop dev servers, sync matches, start API + frontend.
+# Stop dev servers and start API + frontend.
 # Usage: .\start.ps1
-#        .\start.ps1 -SkipSync
-
-param(
-    [switch]$SkipSync
-)
 
 $ErrorActionPreference = "Stop"
 $Root = $PSScriptRoot
@@ -33,34 +28,22 @@ if (-not (Test-Path "config.json")) {
     exit 1
 }
 
-if (-not $SkipSync) {
-    Write-Host "`nSyncing matches..."
-    python run_sync.py
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Sync failed (exit $LASTEXITCODE)." -ForegroundColor Red
-        exit $LASTEXITCODE
-    }
-} else {
-    Write-Host "`nSkipping sync (-SkipSync)."
+Write-Host "`nStarting API and frontend with Node." -ForegroundColor Cyan
+if (-not (Test-Path "$Root\node_modules")) {
+    Write-Host "Installing workspace dependencies..."
+    npm install --workspaces
 }
 
-Write-Host "`nStarting API and frontend with Node. Python is only used for sync." -ForegroundColor Cyan
 Write-Host "Starting API (Node, http://127.0.0.1:8000)..."
-if (-not (Test-Path "$Root\server\node_modules")) {
-    Write-Host "Installing server dependencies..."
-    Set-Location "$Root\server"
-    npm install
-    Set-Location $Root
-}
 Start-Process powershell -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root\server'; npm run dev"
+    "Set-Location '$Root'; npm run dev:server"
 )
 
 Write-Host "Starting frontend (http://localhost:5173)..."
 Start-Process powershell -ArgumentList @(
     "-NoExit", "-Command",
-    "Set-Location '$Root\frontend'; npm run dev"
+    "Set-Location '$Root'; npm run dev:frontend"
 )
 
 Write-Host "`nDone. Open http://localhost:5173 in your browser." -ForegroundColor Green

@@ -4,7 +4,6 @@
       <h1>Rion Dota Journey</h1>
       <ul>
         <li><router-link to="/">Dashboard</router-link></li>
-        <li><router-link to="/journey">Journey</router-link></li>
         <li><router-link to="/matches">Matches</router-link></li>
         <li><router-link to="/heroes">Heroes</router-link></li>
         <li><router-link to="/roles">Roles</router-link></li>
