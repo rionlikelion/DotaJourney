@@ -73,10 +73,10 @@ Serves API and the built Vue app from `frontend/dist` on port 8000.
 
 This repo includes a `render.yaml` Blueprint (same pattern as [riongardner.com](https://github.com/riongardner/riongardner.com)): a single web service with a **persistent disk** mounted at `data/`.
 
-| Path | Purpose |
-|------|---------|
-| `data/journey.db` | SQLite database (survives redeploys) |
-| `data/clips/` | Match highlight videos (on Render; local dev uses `clips/` at repo root) |
+| Path on Render | Purpose |
+|----------------|---------|
+| `/var/data/journey.db` | SQLite database (on persistent disk) |
+| `/var/data/clips/` | Match highlight videos |
 
 **First-time setup on Render:**
 
@@ -109,7 +109,7 @@ npm run start    # ensure config + serve API + frontend/dist
 
 ### Seeding the database (one-time)
 
-Stop your local app/sync so `data/journey.db` isn't locked, then copy that file to Render's persistent disk at `data/journey.db`.
+Stop your local app/sync so `data/journey.db` isn't locked, then copy that file to Render's persistent disk at **`/var/data/journey.db`** (disk mount path in the Render dashboard).
 
 **Easiest manual way — Render Shell + a download link:**
 
@@ -117,10 +117,12 @@ Stop your local app/sync so `data/journey.db` isn't locked, then copy that file 
 2. In the Render dashboard, open your service → **Shell**.
 3. Run:
    ```bash
-   mkdir -p /opt/render/project/src/data
-   curl -L -o /opt/render/project/src/data/journey.db "PASTE_YOUR_DOWNLOAD_URL"
-   ls -lh /opt/render/project/src/data/journey.db
+   curl -L -o /var/data/journey.db "PASTE_YOUR_DOWNLOAD_URL"
+   rm -f /var/data/journey.db-wal /var/data/journey.db-shm
+   ls -lh /var/data/journey.db
+   head -c 15 /var/data/journey.db && echo
    ```
+   You should see `SQLite format 3`.
 4. **Restart** the service (Dashboard → Manual Deploy → Restart).
 
 After that, the DB lives on the persistent disk and survives redeploys.

@@ -16,6 +16,11 @@ export const VALID_ROLES = new Set([
 
 let cached = null
 
+function resolveDataPath(relativeOrAbsolute, defaultRelative) {
+  const raw = relativeOrAbsolute || defaultRelative
+  return path.isAbsolute(raw) ? raw : path.join(ROOT, raw)
+}
+
 export function loadConfig() {
   if (cached) return cached
   if (!fs.existsSync(CONFIG_PATH)) {
@@ -35,8 +40,8 @@ export function loadConfig() {
     accountId: Number(raw.account_id),
     cutoffDate,
     cutoffTimestamp: cutoffTs,
-    databasePath: path.join(ROOT, raw.database_path || 'data/journey.db'),
-    clipsDirectory: path.join(ROOT, raw.clips_directory || 'clips'),
+    databasePath: resolveDataPath(raw.database_path, 'data/journey.db'),
+    clipsDirectory: resolveDataPath(raw.clips_directory, 'clips'),
     goalMedal: raw.goal_medal || 'Legend',
     matchesPerRequest: Number(raw.matches_per_request || 100),
     syncSource: raw.sync_source || 'opendota',

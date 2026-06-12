@@ -1,5 +1,5 @@
 # Render Blueprint — single Node web service serving API + built Vue frontend.
-# Persistent disk is mounted at data/ (same layout as riongardner.com).
+# Persistent disk mount path must match DATABASE_PATH / CLIPS_DIRECTORY below.
 # Set secrets in the Render dashboard after the first Blueprint sync.
 
 services:
@@ -13,15 +13,15 @@ services:
     healthCheckPath: /api/health
     disk:
       name: journey-data
-      mountPath: /opt/render/project/src/data
+      mountPath: /var/data
       sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: DATABASE_PATH
-        value: data/journey.db
+        value: /var/data/journey.db
       - key: CLIPS_DIRECTORY
-        value: data/clips
+        value: /var/data/clips
       - key: CUTOFF_DATE
         value: "2026-05-01"
       - key: GOAL_MEDAL

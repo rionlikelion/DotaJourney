@@ -12,7 +12,13 @@ function env(name, fallback = '') {
   return value === undefined || value === '' ? fallback : value
 }
 
+function resolveDataPath(relativeOrAbsolute, defaultRelative) {
+  const raw = relativeOrAbsolute || defaultRelative
+  return path.isAbsolute(raw) ? raw : path.join(ROOT, raw)
+}
+
 function buildFromEnv() {
+  const onRender = process.env.RENDER === 'true'
   const accountId = env('ACCOUNT_ID')
   if (!accountId) {
     throw new Error(
@@ -25,8 +31,14 @@ function buildFromEnv() {
     opendota_api_key: env('OPENDOTA_API_KEY') || null,
     account_id: Number(accountId),
     cutoff_date: env('CUTOFF_DATE', '2026-05-01'),
-    database_path: env('DATABASE_PATH', 'data/journey.db'),
-    clips_directory: env('CLIPS_DIRECTORY', 'data/clips'),
+    database_path: env(
+      'DATABASE_PATH',
+      onRender ? '/var/data/journey.db' : 'data/journey.db'
+    ),
+    clips_directory: env(
+      'CLIPS_DIRECTORY',
+      onRender ? '/var/data/clips' : 'data/clips'
+    ),
     goal_medal: env('GOAL_MEDAL', 'Legend'),
     matches_per_request: Number(env('MATCHES_PER_REQUEST', '100')),
     sync_source: env('SYNC_SOURCE', 'opendota'),
@@ -35,8 +47,8 @@ function buildFromEnv() {
 }
 
 function ensureDataDirs(config) {
-  const dbPath = path.join(ROOT, config.database_path || 'data/journey.db')
-  const clipsPath = path.join(ROOT, config.clips_directory || 'clips')
+  const dbPath = resolveDataPath(config.database_path, 'data/journey.db')
+  const clipsPath = resolveDataPath(config.clips_directory, 'clips')
   fs.mkdirSync(path.dirname(dbPath), { recursive: true })
   fs.mkdirSync(clipsPath, { recursive: true })
 }
