@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { resolvePythonExecutable } from '../scripts/python-env.js'
 import express from 'express'
 import { loadConfig, VALID_ROLES, roleLabel, ROOT } from './config.js'
 import { getDb, rowToObject } from './db.js'
@@ -309,9 +310,10 @@ export function createRouter() {
 
   post('/sync', (req, res) => {
     const force = req.query.force === 'true'
-    const py = spawn('python', ['run_sync.py', ...(force ? ['--force'] : [])], {
+    const python = resolvePythonExecutable()
+    const py = spawn(python, ['run_sync.py', ...(force ? ['--force'] : [])], {
       cwd: ROOT,
-      shell: true,
+      shell: false,
     })
 
     let out = ''

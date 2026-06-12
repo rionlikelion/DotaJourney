@@ -127,6 +127,33 @@ Stop your local app/sync so `data/journey.db` isn't locked, then copy that file 
 
 After that, the DB lives on the persistent disk and survives redeploys.
 
+### Syncing matches on Render
+
+Render’s system Python is **externally managed** (PEP 668), so do not run `pip install` globally. The build creates a project venv at `.venv/` with sync dependencies.
+
+**Render Shell** (after deploy):
+
+```bash
+node scripts/ensure-config.js
+.venv/bin/python run_sync.py
+```
+
+Force re-fetch existing matches: `.venv/bin/python run_sync.py --force`
+
+**Or** trigger sync over HTTP (same venv, no shell):
+
+```bash
+curl -X POST "https://YOUR-APP.onrender.com/api/sync"
+```
+
+If `.venv` is missing (e.g. before the next deploy), create it once in Shell:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python run_sync.py
+```
+
 ## Why OpenDota?
 
 Valve `get_match_details` often returns empty payloads for recent matches. **OpenDota** provides full parsed matches and **`lane_role`** per player (mapped to carry / mid / offlane / support). Roles are auto-filled on sync; you can override them in the diary form.
@@ -145,3 +172,10 @@ clips/
 - `server/` — Node Express API
 - `frontend/` — Vue 3 app
 - `data/journey.db` — SQLite (gitignored)
+
+
+
+
+
+node scripts/ensure-config.js
+.venv/bin/python run_sync.py

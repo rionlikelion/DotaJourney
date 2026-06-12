@@ -17,3 +17,8 @@ if (platform() === 'linux' && arch() === 'x64') {
 }
 
 run('npm --workspace frontend run build')
+
+// Linux (Render): system Python is PEP 668 — use a project venv for sync.
+if (platform() === 'linux') {
+  run('node scripts/python-env.js')
+}
