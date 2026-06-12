@@ -16,22 +16,21 @@ fs.mkdirSync(cfg.clipsDirectory, { recursive: true })
 const app = express()
 const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
 const allowAllOrigins = process.env.CORS_ALLOW_ALL === '1'
-app.use(
-  cors({
-    origin: allowAllOrigins
-      ? true
-      : (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true)
-          } else {
-            callback(new Error('Not allowed by CORS'))
-          }
-        },
-  })
-)
+// CORS only on /api — dev Vite (5173) → API (8000). Production serves UI + API same-origin.
+const apiCors = cors({
+  origin: allowAllOrigins
+    ? true
+    : (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+      },
+})
 
 const api = createRouter()
-app.use('/api', api)
+app.use('/api', apiCors, api)
 
 app.get(
   '/api/clips/:matchId/:filename',
