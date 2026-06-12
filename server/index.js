@@ -10,6 +10,7 @@ import { apiErrorHandler, routeHandler } from './middleware.js'
 // This Node server hosts the REST API and frontend static assets.
 
 const cfg = loadConfig()
+fs.mkdirSync(path.dirname(cfg.databasePath), { recursive: true })
 fs.mkdirSync(cfg.clipsDirectory, { recursive: true })
 
 const app = express()

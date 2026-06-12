@@ -69,6 +69,35 @@ npm run start:server
 
 Serves API and the built Vue app from `frontend/dist` on port 8000.
 
+### Deploy to Render
+
+This repo includes a `render.yaml` Blueprint (same pattern as [riongardner.com](https://github.com/riongardner/riongardner.com)): a single web service with a **persistent disk** mounted at `data/`.
+
+| Path | Purpose |
+|------|---------|
+| `data/journey.db` | SQLite database (survives redeploys) |
+| `data/clips/` | Match highlight videos (on Render; local dev uses `clips/` at repo root) |
+
+**First-time setup on Render:**
+
+1. Connect the GitHub repo and apply the Blueprint (`render.yaml`).
+2. In the Render dashboard, set **secret** env vars:
+   - `ACCOUNT_ID` — your 32-bit Dota account ID (required)
+   - `OPENDOTA_API_KEY` — optional, for higher sync rate limits
+   - `STEAM_API_KEY` — optional, only if `sync_source` is `both`
+3. Seed the database — either:
+   - Run `python run_sync.py` locally, then upload `data/journey.db` to the Render disk (via shell or one-time copy), or
+   - Install Python on the instance and call `POST /api/sync` after deploy.
+
+On Render, `scripts/ensure-config.js` writes `config.json` from env vars at startup (no committed secrets). Locally, keep using `config.json` as before.
+
+**Build / start** (also what Render runs):
+
+```powershell
+npm run build    # install + vite build
+npm run start    # ensure config + serve API + frontend/dist
+```
+
 ## Why OpenDota?
 
 Valve `get_match_details` often returns empty payloads for recent matches. **OpenDota** provides full parsed matches and **`lane_role`** per player (mapped to carry / mid / offlane / support). Roles are auto-filled on sync; you can override them in the diary form.

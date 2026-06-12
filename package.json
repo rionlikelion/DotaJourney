@@ -15,6 +15,9 @@
     "dev:server": "npm --workspace server run dev",
     "dev:frontend": "npm --workspace frontend run dev",
     "build:frontend": "npm --workspace frontend run build",
+    "build": "npm run build:frontend",
+    "prestart": "node scripts/ensure-config.js",
+    "start": "npm run start:server",
     "start:server": "npm --workspace server run start"
   }
 }
