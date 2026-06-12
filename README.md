@@ -91,10 +91,21 @@ This repo includes a `render.yaml` Blueprint (same pattern as [riongardner.com](
 
 On Render, `scripts/ensure-config.js` writes `config.json` from env vars at startup (no committed secrets). Locally, keep using `config.json` as before.
 
-**Build / start** (also what Render runs):
+**Render dashboard settings** (if not using the Blueprint):
+
+| Setting | Value |
+|---------|-------|
+| Runtime | Node |
+| **Root Directory** | *(leave blank — repo root)* |
+| Build Command | `npm install --workspaces && npm --workspace frontend run build` |
+| Start Command | `node scripts/ensure-config.js && npm --workspace server run start` |
+
+> If Root Directory is set to `server/`, Render will fail with `Missing script: "build"`.
+
+**Build / start** (local or via root `package.json` scripts):
 
 ```powershell
-npm run build    # install + vite build
+npm run build    # vite build
 npm run start    # ensure config + serve API + frontend/dist
 ```
 

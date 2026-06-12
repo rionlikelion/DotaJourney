@@ -7,8 +7,9 @@ services:
     name: rion-dota-journey
     runtime: node
     plan: starter
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    # Root Directory in the dashboard must be blank (repo root), not server/ or frontend/.
+    buildCommand: npm install --workspaces && npm --workspace frontend run build
+    startCommand: node scripts/ensure-config.js && npm --workspace server run start
     healthCheckPath: /api/health
     disk:
       name: journey-data
