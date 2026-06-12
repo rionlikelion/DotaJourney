@@ -95,7 +95,11 @@ onMounted(load)
         <div class="label">Win rate</div>
       </div>
       <div class="stat">
-        <div class="value">{{ summary.wins }} / {{ summary.losses }}</div>
+        <div class="value">
+          <span class="value-success">{{ summary.wins }}</span>
+          <span class="muted"> / </span>
+          <span class="value-danger">{{ summary.losses }}</span>
+        </div>
         <div class="label">W / L</div>
       </div>
       <div class="stat">
@@ -114,7 +118,8 @@ onMounted(load)
 
     <div v-if="summary?.splits?.length" class="card">
       <h3 style="margin-top: 0">Splits</h3>
-      <table>
+      <div class="table-scroll">
+        <table>
         <thead>
           <tr>
             <th>Window</th>
@@ -147,7 +152,8 @@ onMounted(load)
             </td>
           </tr>
         </tbody>
-      </table>
+        </table>
+      </div>
       <p class="muted">Win/loss over your most recent matches by start time.</p>
     </div>
 

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import SortableTh from '../components/SortableTh.vue'
 import {
@@ -52,6 +52,13 @@ const rankDown = ref('')
 const page = ref(1)
 const pageSize = 50
 const hasNextPage = ref(false)
+const filtersOpen = ref(false)
+
+const activeFilterCount = computed(() => {
+  return [hero, role, hasClips, hasDiary, isMilestone, rankUp, rankDown].filter(
+    (filter) => filter.value !== ''
+  ).length
+})
 
 async function loadHeroOptions() {
   try {
@@ -149,7 +156,18 @@ onMounted(async () => {
     <h2>Matches</h2>
     <p v-if="error" class="error">{{ error }}</p>
 
-    <div class="filters">
+    <button
+      type="button"
+      class="filters-toggle mobile-only btn"
+      :aria-expanded="filtersOpen"
+      @click="filtersOpen = !filtersOpen"
+    >
+      Filters
+      <span v-if="activeFilterCount" class="filters-count">{{ activeFilterCount }} active</span>
+      <span class="filters-chevron" aria-hidden="true">{{ filtersOpen ? '▾' : '▸' }}</span>
+    </button>
+
+    <div class="filters" :class="{ 'filters--open': filtersOpen }">
       <label>
         Hero
         <select v-model="hero">
@@ -210,7 +228,94 @@ onMounted(async () => {
       </label>
     </div>
 
-    <table v-if="matches.length" class="card" style="padding: 0; overflow: hidden">
+    <div v-if="matches.length" class="match-cards mobile-only">
+      <RouterLink
+        v-for="m in matches"
+        :key="m.match_id"
+        :to="`/matches/${m.match_id}`"
+        class="match-card card"
+      >
+        <div class="match-card-header">
+          <span class="hero-cell">
+            <img
+              v-if="m.my_hero_id || m.my_hero_name"
+              :src="heroImageUrl(m.my_hero_id || m.my_hero_name)"
+              :alt="m.my_hero_name || m.my_hero_id"
+              :title="m.my_hero_name || m.my_hero_id"
+              class="hero-icon"
+            />
+            <span class="hero-name">{{ m.my_hero_name || m.my_hero_id || '—' }}</span>
+          </span>
+          <span :class="['badge', m.won ? 'win' : 'loss']">
+            {{ m.won ? 'W' : 'L' }}
+          </span>
+        </div>
+        <div class="match-card-meta">
+          {{ formatDate(m.start_time) }} · {{ roleLabel(m.my_role || m.role_played) }}
+        </div>
+        <div class="match-card-row">
+          <span>
+            <span class="value-success">{{ m.my_kills }}</span>
+            <span class="muted">/</span>
+            <span class="value-danger">{{ m.my_deaths }}</span>
+            <span class="muted">/</span>
+            <span class="value-muted">{{ m.my_assists }}</span>
+          </span>
+          <span
+            v-if="m.mmr_delta != null"
+            :class="{
+              'value-success': m.mmr_delta > 0,
+              'value-danger': m.mmr_delta < 0,
+            }"
+          >
+            MMR {{ m.mmr_delta >= 0 ? '+' : '' }}{{ m.mmr_delta }}
+          </span>
+        </div>
+        <div
+          v-if="m.medal_before || m.medal_after || m.has_clips || m.rank_up || m.rank_down || m.has_diary || m.is_milestone"
+          class="match-card-ranks"
+        >
+          <span v-if="m.medal_before" class="match-card-rank">
+            <span class="muted">Before</span>
+            <template v-if="getMedalInfo(m.medal_before)">
+              <span
+                class="medal-badge medal-badge--small"
+                :style="{ backgroundImage: `url(${getMedalInfo(m.medal_before).backgroundUrl})` }"
+              >
+                <img :src="getMedalInfo(m.medal_before).starUrl" :alt="m.medal_before" />
+              </span>
+            </template>
+            <span v-else>{{ m.medal_before }}</span>
+          </span>
+          <span v-if="m.medal_after" class="match-card-rank">
+            <span class="muted">After</span>
+            <template v-if="getMedalInfo(m.medal_after)">
+              <span
+                class="medal-badge medal-badge--small"
+                :style="{ backgroundImage: `url(${getMedalInfo(m.medal_after).backgroundUrl})` }"
+              >
+                <img :src="getMedalInfo(m.medal_after).starUrl" :alt="m.medal_after" />
+              </span>
+            </template>
+            <span v-else>{{ m.medal_after }}</span>
+          </span>
+          <span class="match-actions">
+            <span v-if="m.has_clips" class="badge clip">Clip</span>
+            <span v-if="m.rank_up" class="badge win">Rank up</span>
+            <span v-if="m.rank_down" class="badge loss">Rank down</span>
+            <span
+              v-if="m.has_diary || m.is_milestone"
+              :class="['badge', m.is_milestone ? 'milestone' : 'diary']"
+            >
+              {{ m.has_diary ? 'Diary' : 'Milestone' }}
+            </span>
+          </span>
+        </div>
+      </RouterLink>
+    </div>
+
+    <div v-if="matches.length" class="table-scroll table-scroll--wide desktop-only card" style="padding: 0">
+      <table>
       <thead>
         <tr>
           <SortableTh
@@ -281,9 +386,10 @@ onMounted(async () => {
                 v-if="m.my_hero_id || m.my_hero_name"
                 :src="heroImageUrl(m.my_hero_id || m.my_hero_name)"
                 :alt="m.my_hero_name || m.my_hero_id"
+                :title="m.my_hero_name || m.my_hero_id"
                 class="hero-icon"
               />
-              <span>{{ m.my_hero_name || m.my_hero_id || '—' }}</span>
+              <span class="hero-name">{{ m.my_hero_name || m.my_hero_id || '—' }}</span>
             </RouterLink>
           </td>
           <td>
@@ -354,7 +460,8 @@ onMounted(async () => {
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
 
     <div v-if="matches.length" class="pagination">
       <button class="btn" :disabled="page === 1" @click="goToPreviousPage">

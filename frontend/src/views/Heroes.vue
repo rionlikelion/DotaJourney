@@ -30,7 +30,8 @@ onMounted(async () => {
   <div>
     <h2>Heroes report</h2>
     <p v-if="error" class="error">{{ error }}</p>
-    <table v-if="heroes.length" class="card">
+    <div v-if="heroes.length" class="table-scroll card">
+      <table>
       <thead>
         <tr>
           <SortableTh
@@ -71,9 +72,10 @@ onMounted(async () => {
                 v-if="h.hero_name"
                 :src="heroImageUrl(h.hero_name)"
                 :alt="h.hero_name"
+                :title="h.hero_name"
                 class="hero-icon"
               />
-              <span>{{ h.hero_name }}</span>
+              <span class="hero-name">{{ h.hero_name }}</span>
             </span>
           </td>
           <td>{{ h.games }}</td>
@@ -94,7 +96,8 @@ onMounted(async () => {
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
     <p v-else-if="!error" class="muted">No hero data yet.</p>
   </div>
 </template>

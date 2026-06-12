@@ -189,9 +189,10 @@ onMounted(load)
           v-if="myHeroId || data.match.my_hero_name"
           :src="heroImageUrl(myHeroId || data.match.my_hero_name)"
           :alt="data.match.my_hero_name || myHeroId"
+          :title="data.match.my_hero_name || myHeroId"
           class="hero-icon"
         />
-        {{ data.match.my_hero_name || myHeroId || 'Match' }}
+        <span class="hero-name">{{ data.match.my_hero_name || myHeroId || 'Match' }}</span>
       </span>
       <span :class="['badge', data.match.won ? 'win' : 'loss']">
         {{ data.match.won ? 'Win' : 'Loss' }}
@@ -328,7 +329,8 @@ onMounted(load)
 
     <div class="card">
       <h3 style="margin-top: 0">All players</h3>
-      <table>
+      <div class="table-scroll">
+        <table>
         <thead>
           <tr>
             <SortableTh
@@ -373,9 +375,11 @@ onMounted(load)
                   v-if="p.hero_name"
                   :src="heroImageUrl(p.hero_name)"
                   :alt="p.hero_name"
+                  :title="p.hero_name"
                   class="hero-icon"
                 />
-                {{ p.hero_name }}{{ p.is_me ? ' (you)' : '' }}
+                <span class="hero-name">{{ p.hero_name }}</span
+                ><span v-if="p.is_me"> (you)</span>
               </span>
             </td>
             <td>
@@ -389,7 +393,8 @@ onMounted(load)
             <td>{{ p.xp_per_min }}</td>
           </tr>
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   </div>
   <p v-else-if="error" class="error">{{ error }}</p>

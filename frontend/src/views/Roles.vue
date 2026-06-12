@@ -44,7 +44,8 @@ onMounted(async () => {
       Roles are set manually on each match diary. Assign roles for accurate reports.
     </p>
     <p v-if="error" class="error">{{ error }}</p>
-    <table v-if="roles.length" class="card">
+    <div v-if="roles.length" class="table-scroll table-scroll--wide card">
+      <table>
       <thead>
         <tr>
           <SortableTh
@@ -125,7 +126,8 @@ onMounted(async () => {
           <td>{{ r.calibration_games }}</td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
     <p v-else-if="!error" class="muted">No role data yet.</p>
   </div>
 </template>
