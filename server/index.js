@@ -38,7 +38,9 @@ if (fs.existsSync(cfg.databasePath)) {
 const app = express()
 const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']
 const allowAllOrigins = process.env.CORS_ALLOW_ALL === '1'
-// CORS only on /api — dev Vite (5173) → API (8000). Production serves UI + API same-origin.
+// Restrictive CORS only for local dev (Vite :5173 → API :8000). Production is same-origin.
+const useDevCors =
+  !process.env.RENDER && process.env.NODE_ENV !== 'production'
 const apiCors = cors({
   origin: allowAllOrigins
     ? true
@@ -52,7 +54,11 @@ const apiCors = cors({
 })
 
 const api = createRouter()
-app.use('/api', apiCors, api)
+if (useDevCors) {
+  app.use('/api', apiCors, api)
+} else {
+  app.use('/api', api)
+}
 
 app.get(
   '/api/clips/:matchId/:filename',
