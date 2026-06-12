@@ -97,7 +97,7 @@ On Render, `scripts/ensure-config.js` writes `config.json` from env vars at star
 |---------|-------|
 | Runtime | Node |
 | **Root Directory** | *(leave blank — repo root)* |
-| Build Command | `npm install --workspaces && npm --workspace frontend run build` |
+| Build Command | `node scripts/render-build.js` |
 | Start Command | `node scripts/ensure-config.js && npm --workspace server run start` |
 
 > If Root Directory is set to `server/`, Render will fail with `Missing script: "build"`.

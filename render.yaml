@@ -8,7 +8,7 @@ services:
     runtime: node
     plan: starter
     # Root Directory in the dashboard must be blank (repo root), not server/ or frontend/.
-    buildCommand: npm install --workspaces && npm --workspace frontend run build
+    buildCommand: node scripts/render-build.js
     startCommand: node scripts/ensure-config.js && npm --workspace server run start
     healthCheckPath: /api/health
     disk:
