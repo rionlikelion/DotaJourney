@@ -504,11 +504,11 @@ video {
 }
 
 .desktop-only {
-  display: block;
+  display: block !important;
 }
 
 .mobile-only {
-  display: none;
+  display: none !important;
 }
 
 .table-scroll {
@@ -521,7 +521,6 @@ video {
 }
 
 .match-cards {
-  display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
@@ -583,12 +582,12 @@ video {
     display: none !important;
   }
 
-  .mobile-only {
-    display: block;
+  .mobile-only.match-cards {
+    display: flex !important;
   }
 
-  .mobile-only.match-cards {
-    display: flex;
+  .mobile-only.filters-toggle {
+    display: flex !important;
   }
 
   .layout {
@@ -725,10 +724,6 @@ video {
 
   .hero-cell .hero-name {
     display: none;
-  }
-
-  .filters-toggle.mobile-only {
-    display: flex;
   }
 
   .filters:not(.filters--open) {
