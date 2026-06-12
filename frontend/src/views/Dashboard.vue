@@ -112,10 +112,49 @@ onMounted(load)
       </div>
     </div>
 
+    <div v-if="summary?.splits?.length" class="card">
+      <h3 style="margin-top: 0">Splits</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Window</th>
+            <th>W / L</th>
+            <th>Win rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="split in summary.splits" :key="split.window">
+            <td>Last {{ split.window }}</td>
+            <td>
+              <template v-if="split.games">
+                <span class="value-success">{{ split.wins }}</span>
+                /
+                <span class="value-danger">{{ split.losses }}</span>
+              </template>
+              <span v-else class="value-muted">—</span>
+            </td>
+            <td>
+              <span
+                v-if="split.games"
+                :class="{
+                  'value-success': split.win_rate >= 0.5,
+                  'value-danger': split.win_rate < 0.5,
+                }"
+              >
+                {{ (split.win_rate * 100).toFixed(0) }}%
+              </span>
+              <span v-else class="value-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Win/loss over your most recent matches by start time.</p>
+    </div>
+
     <div class="card">
       <h3 style="margin-top: 0">Rank progression</h3>
       <RankChart :points="rankPoints" />
-      <p class="muted">Orange points = calibration (0 MMR change). All annotated games included.</p>
+      <p class="muted">Green = rank up, red = rank down, orange = calibration. All annotated games included.</p>
     </div>
   </div>
 </template>

@@ -33,9 +33,12 @@ const chartData = computed(() => {
     new Date(p.start_time * 1000).toLocaleDateString()
   )
   const mmr = props.points.map((p) => p.mmr_after ?? p.mmr_before)
-  const colors = props.points.map((p) =>
-    p.is_calibration ? '#d29922' : '#58a6ff'
-  )
+  const colors = props.points.map((p) => {
+    if (p.rank_up) return '#3fb950'
+    if (p.rank_down) return '#f85149'
+    if (p.is_calibration) return '#d29922'
+    return '#58a6ff'
+  })
 
   return {
     labels,
@@ -65,6 +68,8 @@ const options = {
           const p = props.points[ctx.dataIndex]
           const lines = []
           if (p.mmr_delta != null) lines.push(`Δ ${p.mmr_delta >= 0 ? '+' : ''}${p.mmr_delta}`)
+          if (p.rank_up) lines.push('Rank up')
+          else if (p.rank_down) lines.push('Rank down')
           if (p.is_calibration) lines.push('Calibration')
           if (p.medal_after) lines.push(p.medal_after)
           return lines

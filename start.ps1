@@ -5,6 +5,11 @@ $ErrorActionPreference = "Stop"
 $Root = $PSScriptRoot
 Set-Location $Root
 
+$NodeDir = "C:\Program Files\nodejs"
+if (Test-Path $NodeDir) {
+    $env:PATH = "$NodeDir;$env:PATH"
+}
+
 function Stop-PortListener {
     param([int]$Port)
     $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
@@ -29,9 +34,19 @@ if (-not (Test-Path "config.json")) {
 }
 
 Write-Host "`nStarting API and frontend with Node." -ForegroundColor Cyan
+Write-Host "Node version: $(node -v)"
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+    Write-Host "npm version: $(npm -v)"
+} else {
+    Write-Host "WARNING: npm not found on PATH. Install Node.js from https://nodejs.org/ or fix PATH." -ForegroundColor Yellow
+}
+
 if (-not (Test-Path "$Root\node_modules")) {
     Write-Host "Installing workspace dependencies..."
     npm install --workspaces
+} else {
+    Write-Host "Verifying SQLite native module for this Node version..."
+    node server/scripts/ensure-sqlite-native.js
 }
 
 Write-Host "Starting API (Node, http://127.0.0.1:8000)..."

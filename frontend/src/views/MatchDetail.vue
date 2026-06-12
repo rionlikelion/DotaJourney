@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import SortableTh from '../components/SortableTh.vue'
+import { useTableSort } from '../composables/useTableSort.js'
 import {
   api,
   ensureHeroMetadata,
@@ -50,6 +52,23 @@ const mmrDelta = computed(() => {
   if (b == null || a == null || b === '' || a === '') return null
   return Number(a) - Number(b)
 })
+
+const players = computed(() => data.value?.players || [])
+
+const PLAYER_COLUMNS = {
+  player_slot: { type: 'number', defaultOrder: 'asc' },
+  hero_name: { type: 'string', defaultOrder: 'asc' },
+  kills: { type: 'number', defaultOrder: 'desc' },
+  gold_per_min: { type: 'number', defaultOrder: 'desc' },
+  xp_per_min: { type: 'number', defaultOrder: 'desc' },
+}
+
+const { toggleSort, sortDirection, sortedItems: sortedPlayers, sortKey } = useTableSort(
+  players,
+  PLAYER_COLUMNS,
+  'player_slot',
+  'asc'
+)
 
 function syncMmrDeltaInput() {
   if (form.value.mmr_before == null || form.value.mmr_before === '' || form.value.mmr_after == null || form.value.mmr_after === '') {
@@ -312,15 +331,39 @@ onMounted(load)
       <table>
         <thead>
           <tr>
-            <th>Hero</th>
-            <th>KDA</th>
-            <th>GPM</th>
-            <th>XPM</th>
+            <SortableTh
+              label="Hero"
+              column="hero_name"
+              :active-column="sortKey"
+              :direction="sortDirection('hero_name')"
+              @sort="toggleSort"
+            />
+            <SortableTh
+              label="KDA"
+              column="kills"
+              :active-column="sortKey"
+              :direction="sortDirection('kills')"
+              @sort="toggleSort"
+            />
+            <SortableTh
+              label="GPM"
+              column="gold_per_min"
+              :active-column="sortKey"
+              :direction="sortDirection('gold_per_min')"
+              @sort="toggleSort"
+            />
+            <SortableTh
+              label="XPM"
+              column="xp_per_min"
+              :active-column="sortKey"
+              :direction="sortDirection('xp_per_min')"
+              @sort="toggleSort"
+            />
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="p in data.players"
+            v-for="p in sortedPlayers"
             :key="p.player_slot"
             :style="p.is_me ? { fontWeight: 600 } : {}"
           >

@@ -5,6 +5,7 @@ import fs from 'fs'
 import { loadConfig, ROOT } from './config.js'
 import { createRouter } from './routes.js'
 import { resolveClipPath } from './clips.js'
+import { apiErrorHandler, routeHandler } from './middleware.js'
 
 // This Node server hosts the REST API and frontend static assets.
 
@@ -31,14 +32,19 @@ app.use(
 const api = createRouter()
 app.use('/api', api)
 
-app.get('/api/clips/:matchId/:filename', (req, res) => {
-  const file = resolveClipPath(
-    Number(req.params.matchId),
-    req.params.filename
-  )
-  if (!file) return res.status(404).json({ detail: 'Clip not found' })
-  res.sendFile(file)
-})
+app.get(
+  '/api/clips/:matchId/:filename',
+  routeHandler((req, res, next) => {
+    const file = resolveClipPath(
+      Number(req.params.matchId),
+      req.params.filename
+    )
+    if (!file) return res.status(404).json({ detail: 'Clip not found' })
+    res.sendFile(file, (err) => {
+      if (err) next(err)
+    })
+  })
+)
 
 const dist = path.join(ROOT, 'frontend', 'dist')
 if (fs.existsSync(path.join(dist, 'index.html'))) {
@@ -47,6 +53,8 @@ if (fs.existsSync(path.join(dist, 'index.html'))) {
     res.sendFile(path.join(dist, 'index.html'))
   })
 }
+
+app.use(apiErrorHandler)
 
 const PORT = process.env.PORT || 8000
 const HOST = process.env.HOST || '0.0.0.0'

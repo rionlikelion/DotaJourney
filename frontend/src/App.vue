@@ -6,6 +6,9 @@
         <li><router-link to="/">Dashboard</router-link></li>
         <li><router-link to="/matches">Matches</router-link></li>
         <li><router-link to="/heroes">Heroes</router-link></li>
+        <li><router-link to="/friends">Friends</router-link></li>
+        <li><router-link to="/enemies">Enemies</router-link></li>
+        <li><router-link to="/meta">Meta</router-link></li>
         <li><router-link to="/roles">Roles</router-link></li>
       </ul>
       <p class="muted" style="margin-top: 2rem; font-size: 0.75rem">

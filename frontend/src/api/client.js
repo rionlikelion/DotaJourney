@@ -1,10 +1,31 @@
 const BASE = ''
+const RETRYABLE_STATUSES = new Set([502, 503, 504])
+const MAX_RETRIES = 3
 
-async function request(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  })
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function request(path, options = {}, attempt = 0) {
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    })
+  } catch (err) {
+    if (attempt < MAX_RETRIES) {
+      await wait(250 * (attempt + 1))
+      return request(path, options, attempt + 1)
+    }
+    throw err
+  }
+
+  if (!res.ok && RETRYABLE_STATUSES.has(res.status) && attempt < MAX_RETRIES) {
+    await wait(250 * (attempt + 1))
+    return request(path, options, attempt + 1)
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(err.detail || res.statusText)
@@ -32,6 +53,12 @@ export const api = {
   },
   summary: () => request('/api/stats/summary'),
   heroes: () => request('/api/stats/heroes'),
+  teammates: () => request('/api/stats/teammates'),
+  enemies: () => request('/api/stats/enemies'),
+  meta: (params = {}) => {
+    const q = new URLSearchParams(params).toString()
+    return request(`/api/stats/meta${q ? `?${q}` : ''}`)
+  },
   heroMetadata: () => request('/api/hero-metadata'),
   roles: () => request('/api/stats/roles'),
   rankProgression: (includeCalibration = true) =>

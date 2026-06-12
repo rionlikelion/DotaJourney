@@ -264,6 +264,32 @@ th {
   text-transform: uppercase;
 }
 
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover,
+.sortable-th.active {
+  color: var(--text);
+}
+
+.sortable-th-label {
+  margin-right: 0.35rem;
+}
+
+.sort-indicator {
+  display: inline-block;
+  font-size: 0.65rem;
+  opacity: 0.45;
+}
+
+.sortable-th.active .sort-indicator,
+.sortable-th:hover .sort-indicator {
+  opacity: 1;
+}
+
 .btn {
   font-family: inherit;
   font-size: 0.875rem;
@@ -355,6 +381,10 @@ textarea {
 
 .timeline-item.rank-up {
   border-left-color: var(--milestone);
+}
+
+.timeline-item.rank-down {
+  border-left-color: var(--loss);
 }
 
 .timeline-item.milestone {

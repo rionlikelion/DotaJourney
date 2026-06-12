@@ -18,7 +18,7 @@ const { toggleSort, sortDirection, sortedItems, sortKey } = useTableSort(
 onMounted(async () => {
   try {
     await ensureHeroMetadata()
-    const data = await api.heroes()
+    const data = await api.teammates()
     heroes.value = data.heroes
   } catch (e) {
     error.value = e.message
@@ -28,7 +28,8 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h2>Heroes report</h2>
+    <h2>Friends report</h2>
+    <p class="muted">Heroes your teammates have played on your team.</p>
     <p v-if="error" class="error">{{ error }}</p>
     <table v-if="heroes.length" class="card">
       <thead>
@@ -79,8 +80,8 @@ onMounted(async () => {
           <td>{{ h.games }}</td>
           <td
             :class="{
-              'value-success': (h.win_rate * 100) >= 50,
-              'value-danger': (h.win_rate * 100) < 50,
+              'value-success': h.win_rate * 100 >= 50,
+              'value-danger': h.win_rate * 100 < 50,
             }"
           >
             {{ (h.win_rate * 100).toFixed(0) }}%
@@ -95,6 +96,6 @@ onMounted(async () => {
         </tr>
       </tbody>
     </table>
-    <p v-else-if="!error" class="muted">No hero data yet.</p>
+    <p v-else-if="!error" class="muted">No teammate hero data yet.</p>
   </div>
 </template>

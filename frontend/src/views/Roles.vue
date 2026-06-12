@@ -1,9 +1,31 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import SortableTh from '../components/SortableTh.vue'
+import { useTableSort } from '../composables/useTableSort.js'
 import { api, roleLabel } from '../api/client'
 
 const roles = ref([])
 const error = ref(null)
+
+const ROLE_COLUMNS = {
+  role_played: {
+    type: 'string',
+    defaultOrder: 'asc',
+    get: (row) => (row.role_played === 'unassigned' ? 'zzzz' : row.role_played),
+  },
+  games: { type: 'number', defaultOrder: 'desc' },
+  win_rate: { type: 'number', defaultOrder: 'desc' },
+  avg_kills: { type: 'number', defaultOrder: 'desc' },
+  avg_mmr_delta: { type: 'number', defaultOrder: 'desc' },
+  calibration_games: { type: 'number', defaultOrder: 'desc' },
+}
+
+const { toggleSort, sortDirection, sortedItems, sortKey } = useTableSort(
+  roles,
+  ROLE_COLUMNS,
+  'games',
+  'desc'
+)
 
 onMounted(async () => {
   try {
@@ -25,16 +47,52 @@ onMounted(async () => {
     <table v-if="roles.length" class="card">
       <thead>
         <tr>
-          <th>Role</th>
-          <th>Games</th>
-          <th>Win rate</th>
-          <th>Avg KDA</th>
-          <th>Avg MMR Δ</th>
-          <th>Calibration games</th>
+          <SortableTh
+            label="Role"
+            column="role_played"
+            :active-column="sortKey"
+            :direction="sortDirection('role_played')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Games"
+            column="games"
+            :active-column="sortKey"
+            :direction="sortDirection('games')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Win rate"
+            column="win_rate"
+            :active-column="sortKey"
+            :direction="sortDirection('win_rate')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Avg KDA"
+            column="avg_kills"
+            :active-column="sortKey"
+            :direction="sortDirection('avg_kills')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Avg MMR Δ"
+            column="avg_mmr_delta"
+            :active-column="sortKey"
+            :direction="sortDirection('avg_mmr_delta')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Calibration games"
+            column="calibration_games"
+            :active-column="sortKey"
+            :direction="sortDirection('calibration_games')"
+            @sort="toggleSort"
+          />
         </tr>
       </thead>
       <tbody>
-        <tr v-for="r in roles" :key="r.role_played">
+        <tr v-for="r in sortedItems" :key="r.role_played">
           <td>
             <strong>{{
               r.role_played === 'unassigned' ? 'Unassigned' : roleLabel(r.role_played)

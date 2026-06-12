@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import SortableTh from '../components/SortableTh.vue'
 import {
   api,
   ensureHeroMetadata,
@@ -14,6 +15,8 @@ import {
 const matches = ref([])
 const error = ref(null)
 const heroOptions = ref([])
+const sortKey = ref('start_time')
+const sortOrder = ref('desc')
 
 const RANK_ICON_BASE = 'https://www.opendota.com/assets/images/dota2/rank_icons'
 const MEDAL_ICON_INDEX = {
@@ -45,6 +48,7 @@ const hasClips = ref('')
 const hasDiary = ref('')
 const isMilestone = ref('')
 const rankUp = ref('')
+const rankDown = ref('')
 const page = ref(1)
 const pageSize = 50
 const hasNextPage = ref(false)
@@ -70,6 +74,8 @@ async function load() {
     const params = {
       limit: pageSize,
       offset: (page.value - 1) * pageSize,
+      sort: sortKey.value,
+      order: sortOrder.value,
     }
     if (hero.value) params.hero = hero.value
     if (role.value) params.role = role.value
@@ -77,6 +83,7 @@ async function load() {
     if (hasDiary.value) params.has_diary = hasDiary.value
     if (isMilestone.value) params.is_milestone = isMilestone.value
     if (rankUp.value) params.rank_up = rankUp.value
+    if (rankDown.value) params.rank_down = rankDown.value
     const data = await api.matches(params)
     matches.value = data.matches
     hasNextPage.value = data.matches.length === pageSize
@@ -99,7 +106,34 @@ function goToNextPage() {
   }
 }
 
-watch([hero, role, hasClips, hasDiary, isMilestone, rankUp], () => {
+const MATCH_SORT_DEFAULTS = {
+  start_time: 'desc',
+  match_id: 'desc',
+  hero: 'asc',
+  kills: 'desc',
+  role: 'asc',
+  medal_before: 'desc',
+  medal_after: 'desc',
+  won: 'desc',
+  mmr_delta: 'desc',
+}
+
+function toggleSort(column) {
+  if (sortKey.value === column) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = column
+    sortOrder.value = MATCH_SORT_DEFAULTS[column] || 'asc'
+  }
+  page.value = 1
+  load()
+}
+
+function sortDirection(column) {
+  return sortKey.value === column ? sortOrder.value : null
+}
+
+watch([hero, role, hasClips, hasDiary, isMilestone, rankUp, rankDown], () => {
   page.value = 1
   load()
 })
@@ -166,19 +200,75 @@ onMounted(async () => {
           <option value="false">No</option>
         </select>
       </label>
+      <label>
+        Rank down
+        <select v-model="rankDown">
+          <option value="">Any</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      </label>
     </div>
 
     <table v-if="matches.length" class="card" style="padding: 0; overflow: hidden">
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Hero</th>
-          <th>KDA</th>
-          <th>Role</th>
-          <th>Rank before</th>
-          <th>Rank after</th>
-          <th>Result</th>
-          <th>MMR Δ</th>
+          <SortableTh
+            label="Date"
+            column="start_time"
+            :active-column="sortKey"
+            :direction="sortDirection('start_time')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Hero"
+            column="hero"
+            :active-column="sortKey"
+            :direction="sortDirection('hero')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="KDA"
+            column="kills"
+            :active-column="sortKey"
+            :direction="sortDirection('kills')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Role"
+            column="role"
+            :active-column="sortKey"
+            :direction="sortDirection('role')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Rank before"
+            column="medal_before"
+            :active-column="sortKey"
+            :direction="sortDirection('medal_before')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Rank after"
+            column="medal_after"
+            :active-column="sortKey"
+            :direction="sortDirection('medal_after')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="Result"
+            column="won"
+            :active-column="sortKey"
+            :direction="sortDirection('won')"
+            @sort="toggleSort"
+          />
+          <SortableTh
+            label="MMR Δ"
+            column="mmr_delta"
+            :active-column="sortKey"
+            :direction="sortDirection('mmr_delta')"
+            @sort="toggleSort"
+          />
           <th></th>
         </tr>
       </thead>
@@ -252,11 +342,13 @@ onMounted(async () => {
           <td>
             <span class="match-actions">
               <span v-if="m.has_clips" class="badge clip">Clip</span>
+              <span v-if="m.rank_up" class="badge win">Rank up</span>
+              <span v-if="m.rank_down" class="badge loss">Rank down</span>
               <span
-                v-if="m.has_diary || m.is_milestone || m.rank_up"
-                :class="['badge', m.is_milestone || m.rank_up ? 'milestone' : 'diary']"
+                v-if="m.has_diary || m.is_milestone"
+                :class="['badge', m.is_milestone ? 'milestone' : 'diary']"
               >
-                {{ m.has_diary ? 'Diary' : m.is_milestone ? 'Milestone' : m.rank_up ? 'Rank up' : '' }}
+                {{ m.has_diary ? 'Diary' : 'Milestone' }}
               </span>
             </span>
           </td>
