@@ -41,18 +41,20 @@ function ensureDataDirs(config) {
   fs.mkdirSync(clipsPath, { recursive: true })
 }
 
-if (fs.existsSync(CONFIG_PATH)) {
-  const existing = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
-  ensureDataDirs(existing)
-  console.log('[config] using existing config.json')
-  process.exit(0)
-}
-
+// On Render, always rebuild config from env vars (don't keep a stale config.json).
 if (process.env.RENDER === 'true' || process.env.ACCOUNT_ID) {
   const config = buildFromEnv()
   fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`)
   ensureDataDirs(config)
   console.log('[config] wrote config.json from environment variables')
+  console.log(`[config] database_path=${config.database_path}`)
+  process.exit(0)
+}
+
+if (fs.existsSync(CONFIG_PATH)) {
+  const existing = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+  ensureDataDirs(existing)
+  console.log('[config] using existing config.json')
   process.exit(0)
 }
 

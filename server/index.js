@@ -12,6 +12,12 @@ import { apiErrorHandler, routeHandler } from './middleware.js'
 const cfg = loadConfig()
 fs.mkdirSync(path.dirname(cfg.databasePath), { recursive: true })
 fs.mkdirSync(cfg.clipsDirectory, { recursive: true })
+if (fs.existsSync(cfg.databasePath)) {
+  const { size } = fs.statSync(cfg.databasePath)
+  console.log(`[db] ${cfg.databasePath} (${size} bytes)`)
+} else {
+  console.warn(`[db] ${cfg.databasePath} does not exist yet`)
+}
 
 const app = express()
 const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173']

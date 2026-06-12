@@ -85,9 +85,7 @@ This repo includes a `render.yaml` Blueprint (same pattern as [riongardner.com](
    - `ACCOUNT_ID` — your 32-bit Dota account ID (required)
    - `OPENDOTA_API_KEY` — optional, for higher sync rate limits
    - `STEAM_API_KEY` — optional, only if `sync_source` is `both`
-3. Seed the database — either:
-   - Run `python run_sync.py` locally, then upload `data/journey.db` to the Render disk (via shell or one-time copy), or
-   - Install Python on the instance and call `POST /api/sync` after deploy.
+3. Copy your local `data/journey.db` to Render once (see **Seeding the database** below).
 
 On Render, `scripts/ensure-config.js` writes `config.json` from env vars at startup (no committed secrets). Locally, keep using `config.json` as before.
 
@@ -108,6 +106,24 @@ On Render, `scripts/ensure-config.js` writes `config.json` from env vars at star
 npm run build    # vite build
 npm run start    # ensure config + serve API + frontend/dist
 ```
+
+### Seeding the database (one-time)
+
+Stop your local app/sync so `data/journey.db` isn't locked, then copy that file to Render's persistent disk at `data/journey.db`.
+
+**Easiest manual way — Render Shell + a download link:**
+
+1. Upload `data/journey.db` somewhere with a direct download URL (Dropbox, Google Drive direct link, etc.).
+2. In the Render dashboard, open your service → **Shell**.
+3. Run:
+   ```bash
+   mkdir -p /opt/render/project/src/data
+   curl -L -o /opt/render/project/src/data/journey.db "PASTE_YOUR_DOWNLOAD_URL"
+   ls -lh /opt/render/project/src/data/journey.db
+   ```
+4. **Restart** the service (Dashboard → Manual Deploy → Restart).
+
+After that, the DB lives on the persistent disk and survives redeploys.
 
 ## Why OpenDota?
 
