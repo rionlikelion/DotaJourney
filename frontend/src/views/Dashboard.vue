@@ -32,9 +32,31 @@ function getMedalInfo(medal) {
   }
 }
 
-const latestMedalInfo = computed(() => {
-  return summary.value ? getMedalInfo(summary.value.latest_medal) : null
-})
+const rankEvents = computed(() =>
+  rankPoints.value.filter((p) => {
+    if (p.rank_up || p.rank_down) return true
+    if (p.is_calibration) return Boolean(p.medal_after?.trim())
+    return false
+  })
+)
+
+const chartPoints = computed(() =>
+  rankPoints.value.filter((p) => !(p.is_calibration && !p.medal_after?.trim()))
+)
+
+const goalMedalInfo = computed(() => getMedalInfo('Legend 1'))
+
+function formatShortDate(ts) {
+  if (!ts) return '—'
+  return new Date(ts * 1000).toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
+function eventLabel(event) {
+  if (event.is_calibration) return 'Cal'
+  if (event.rank_up) return '↑'
+  if (event.rank_down) return '↓'
+  return ''
+}
 
 async function load() {
   error.value = null
@@ -59,22 +81,53 @@ onMounted(load)
     <p v-if="error" class="error">{{ error }}</p>
 
     <div v-if="summary" class="card goal-card">
-      <h3 style="margin-top: 0">Goal: {{ summary.goal_medal }}</h3>
-      <p class="goal-current">
-        <span class="goal-current-label">Current:</span>
-        <template v-if="summary.latest_medal">
-          <span v-if="latestMedalInfo" class="medal-display">
-            <span class="medal-badge" :style="{ backgroundImage: `url(${latestMedalInfo.backgroundUrl})` }">
-              <img :src="latestMedalInfo.starUrl" :alt="summary.latest_medal" />
+      <div class="rank-card-layout">
+        <div class="rank-current-section">
+          <h3 class="rank-section-heading">Current</h3>
+          <ul v-if="rankEvents.length" class="rank-progression-list">
+            <li
+              v-for="event in rankEvents"
+              :key="event.match_id"
+              class="rank-progression-item"
+              :title="`${event.medal_after || '—'} · ${formatShortDate(event.start_time)}`"
+            >
+              <template v-if="event.medal_after && getMedalInfo(event.medal_after)">
+                <span
+                  class="medal-badge medal-badge--xs"
+                  :style="{ backgroundImage: `url(${getMedalInfo(event.medal_after).backgroundUrl})` }"
+                >
+                  <img :src="getMedalInfo(event.medal_after).starUrl" :alt="event.medal_after" />
+                </span>
+              </template>
+              <span v-else-if="event.medal_after" class="rank-progression-medal">{{ event.medal_after }}</span>
+              <span v-else class="muted">—</span>
+              <span class="rank-progression-date">{{ formatShortDate(event.start_time) }}</span>
+              <span
+                v-if="event.is_calibration"
+                class="rank-event rank-event--calibration"
+              >{{ eventLabel(event) }}</span>
+              <span v-else-if="event.rank_up" class="rank-event rank-event--up">{{ eventLabel(event) }}</span>
+              <span v-else-if="event.rank_down" class="rank-event rank-event--down">{{ eventLabel(event) }}</span>
+            </li>
+          </ul>
+          <p v-else class="muted rank-empty">No rank changes recorded yet.</p>
+        </div>
+
+        <div class="rank-goal-section">
+          <h3 class="rank-section-heading">Goal</h3>
+          <div class="goal-display">
+            <span v-if="goalMedalInfo" class="medal-display">
+              <span
+                class="medal-badge medal-badge--small"
+                :style="{ backgroundImage: `url(${goalMedalInfo.backgroundUrl})` }"
+              >
+                <img :src="goalMedalInfo.starUrl" alt="Legend 1" />
+              </span>
             </span>
-          </span>
-          <strong v-else>{{ summary.latest_medal }}</strong>
-        </template>
-        <strong v-else>—</strong>
-        <span v-if="summary.latest_mmr != null" class="goal-current-mmr">
-          · {{ summary.latest_mmr }} MMR
-        </span>
-      </p>
+            <strong v-else>Legend 1</strong>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="summary" class="grid-stats card">
@@ -159,8 +212,8 @@ onMounted(load)
 
     <div class="card">
       <h3 style="margin-top: 0">Rank progression</h3>
-      <RankChart :points="rankPoints" />
-      <p class="muted">Green = rank up, red = rank down, orange = calibration. All annotated games included.</p>
+      <RankChart :points="chartPoints" />
+      <p class="muted">Green = rank up, red = rank down, orange = calibration. Calibration games without a medal are omitted.</p>
     </div>
   </div>
 </template>

@@ -309,7 +309,7 @@ onMounted(load)
       <div class="checkbox-row">
         <label>
           <input v-model="form.is_calibration" type="checkbox" />
-          Calibration game (0 MMR change)
+          Calibration
         </label>
         <label>
           <input v-model="form.is_milestone" type="checkbox" />

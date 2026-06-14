@@ -155,13 +155,18 @@ function prepopulateMatchBeforeValues(annotation, db, matchId) {
   const existing = annotation ? { ...annotation } : {}
   const needsMmrBefore = existing.mmr_before == null
   const needsMedalBefore = existing.medal_before == null
-  if (!needsMmrBefore && !needsMedalBefore) return existing
+  const needsMedalAfter = existing.medal_after == null
+  if (!needsMmrBefore && !needsMedalBefore && !needsMedalAfter) return existing
 
   const prev = getPreviousCompletedAnnotation(db, matchId)
   if (!prev) return existing
 
   if (needsMmrBefore && prev.mmr_after != null) existing.mmr_before = prev.mmr_after
   if (needsMedalBefore && prev.medal_after != null) existing.medal_before = prev.medal_after
+  if (needsMedalAfter) {
+    if (existing.medal_before != null) existing.medal_after = existing.medal_before
+    else if (prev.medal_after != null) existing.medal_after = prev.medal_after
+  }
   return existing
 }
 
@@ -795,7 +800,15 @@ export function createRouter() {
                a.medal_before, a.medal_after, a.is_calibration
         FROM matches m
         INNER JOIN match_annotations a ON a.match_id = m.match_id
-        WHERE (a.mmr_after IS NOT NULL OR a.mmr_before IS NOT NULL)
+        WHERE (
+          a.mmr_after IS NOT NULL OR a.mmr_before IS NOT NULL
+          OR a.is_calibration = 1
+          OR (
+            a.medal_before IS NOT NULL AND TRIM(a.medal_before) != ''
+            AND a.medal_after IS NOT NULL AND TRIM(a.medal_after) != ''
+            AND a.medal_before != a.medal_after
+          )
+        )
         ${calFilter}
         ORDER BY m.start_time ASC
       `

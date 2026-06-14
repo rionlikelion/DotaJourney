@@ -108,6 +108,11 @@ main {
   height: 64px;
 }
 
+.medal-badge--xs {
+  width: 40px;
+  height: 40px;
+}
+
 .medal-badge img {
   position: absolute;
   inset: 0;
@@ -134,6 +139,94 @@ main {
 
 .goal-current-mmr {
   color: var(--muted);
+}
+
+.goal-heading {
+  margin-top: 1.5rem;
+}
+
+.rank-card-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.rank-current-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.rank-goal-section {
+  flex-shrink: 0;
+}
+
+.rank-section-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.rank-empty {
+  margin: 0;
+}
+
+.goal-display {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rank-progression-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rank-progression-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 52px;
+}
+
+.rank-progression-medal {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.rank-progression-date {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.rank-event {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.rank-event--up {
+  color: var(--win);
+  background: rgba(63, 185, 80, 0.15);
+}
+
+.rank-event--down {
+  color: var(--loss);
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.rank-event--calibration {
+  color: var(--calibration);
+  background: rgba(210, 153, 34, 0.15);
 }
 
 h2 {
@@ -485,11 +578,21 @@ video {
 }
 
 .checkbox-row label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   color: var(--text);
   font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.checkbox-row input[type='checkbox'] {
+  width: auto;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
 }
 
 .nav-tagline {
@@ -715,6 +818,26 @@ video {
   .medal-badge--small {
     width: 48px;
     height: 48px;
+  }
+
+  .medal-badge--xs {
+    width: 36px;
+    height: 36px;
+  }
+
+  .rank-card-layout {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .rank-goal-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .rank-goal-section .rank-section-heading {
+    margin: 0;
   }
 
   .hero-icon {
