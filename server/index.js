@@ -53,6 +53,8 @@ const apiCors = cors({
       },
 })
 
+app.use(express.json())
+
 const api = createRouter()
 if (useDevCors) {
   app.use('/api', apiCors, api)

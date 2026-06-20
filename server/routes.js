@@ -283,6 +283,17 @@ export function createRouter() {
 
   get('/health', (_req, res) => res.json({ status: 'ok' }))
 
+  post('/verify-password', (req, res) => {
+    const PASSWORD = 'Icefrog15@Deftones1987@'
+    const { password } = req.body
+    
+    if (password === PASSWORD) {
+      res.json({ valid: true })
+    } else {
+      res.status(401).json({ valid: false })
+    }
+  })
+
   get('/config/public', (_req, res) => {
     const c = loadConfig()
     res.json({
