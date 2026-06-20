@@ -14,6 +14,7 @@ import {
 
 const matches = ref([])
 const error = ref(null)
+const loading = ref(false)
 const heroOptions = ref([])
 const sortKey = ref('start_time')
 const sortOrder = ref('desc')
@@ -72,6 +73,7 @@ async function loadHeroOptions() {
 }
 
 async function load() {
+  loading.value = true
   error.value = null
   try {
     await ensureHeroMetadata()
@@ -96,6 +98,8 @@ async function load() {
     hasNextPage.value = data.matches.length === pageSize
   } catch (e) {
     error.value = e.message
+  } finally {
+    loading.value = false
   }
 }
 
@@ -228,7 +232,10 @@ onMounted(async () => {
       </label>
     </div>
 
-    <div v-if="matches.length" class="match-cards mobile-only">
+    <div v-if="loading && !matches.length" class="match-cards mobile-only">
+      <p class="muted">Loading…</p>
+    </div>
+    <div v-else-if="matches.length" class="match-cards mobile-only">
       <RouterLink
         v-for="m in matches"
         :key="m.match_id"
@@ -314,7 +321,10 @@ onMounted(async () => {
       </RouterLink>
     </div>
 
-    <div v-if="matches.length" class="table-scroll table-scroll--wide desktop-only card" style="padding: 0">
+    <div v-if="loading && !matches.length" class="table-scroll table-scroll--wide desktop-only card" style="padding: 0">
+      <p class="muted" style="padding: 1rem">Loading…</p>
+    </div>
+    <div v-else-if="matches.length" class="table-scroll table-scroll--wide desktop-only card" style="padding: 0">
       <table>
       <thead>
         <tr>
@@ -463,7 +473,7 @@ onMounted(async () => {
       </table>
     </div>
 
-    <div v-if="matches.length" class="pagination">
+    <div v-else-if="matches.length" class="pagination">
       <button class="btn" :disabled="page === 1" @click="goToPreviousPage">
         Previous
       </button>
@@ -473,6 +483,6 @@ onMounted(async () => {
       </button>
     </div>
 
-    <p v-else-if="!error" class="muted">No matches found.</p>
+    <p v-else-if="!error && !loading" class="muted">No matches found.</p>
   </div>
 </template>

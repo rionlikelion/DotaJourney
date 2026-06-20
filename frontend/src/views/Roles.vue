@@ -6,6 +6,7 @@ import { api, roleLabel } from '../api/client'
 
 const roles = ref([])
 const error = ref(null)
+const loading = ref(false)
 
 const ROLE_COLUMNS = {
   role_played: {
@@ -28,11 +29,15 @@ const { toggleSort, sortDirection, sortedItems, sortKey } = useTableSort(
 )
 
 onMounted(async () => {
+  loading.value = true
+  error.value = null
   try {
     const data = await api.roles()
     roles.value = data.roles
   } catch (e) {
     error.value = e.message
+  } finally {
+    loading.value = false
   }
 })
 </script>
@@ -44,7 +49,10 @@ onMounted(async () => {
       Roles are set manually on each match diary. Assign roles for accurate reports.
     </p>
     <p v-if="error" class="error">{{ error }}</p>
-    <div v-if="roles.length" class="table-scroll table-scroll--wide card">
+    <div v-if="loading && !roles.length" class="table-scroll table-scroll--wide card">
+      <p class="muted">Loading…</p>
+    </div>
+    <div v-else-if="roles.length" class="table-scroll table-scroll--wide card">
       <table>
       <thead>
         <tr>

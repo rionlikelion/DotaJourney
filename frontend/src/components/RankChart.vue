@@ -51,7 +51,12 @@ const chartData = computed(() => {
         fill: true,
         tension: 0.2,
         pointBackgroundColor: colors,
-        pointRadius: props.points.map((p) => (p.is_calibration ? 8 : 5)),
+        pointRadius: props.points.map((p) => {
+          if (p.rank_up || p.rank_down || p.is_calibration) {
+            return p.is_calibration ? 8 : 5
+          }
+          return 0
+        }),
       },
     ],
   }

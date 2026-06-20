@@ -7,6 +7,7 @@ import { api, ensureHeroMetadata, heroImageUrl } from '../api/client'
 
 const heroes = ref([])
 const error = ref(null)
+const loading = ref(false)
 
 const { toggleSort, sortDirection, sortedItems, sortKey } = useTableSort(
   heroes,
@@ -16,12 +17,16 @@ const { toggleSort, sortDirection, sortedItems, sortKey } = useTableSort(
 )
 
 onMounted(async () => {
+  loading.value = true
+  error.value = null
   try {
     await ensureHeroMetadata()
     const data = await api.enemies()
     heroes.value = data.heroes
   } catch (e) {
     error.value = e.message
+  } finally {
+    loading.value = false
   }
 })
 </script>
@@ -31,7 +36,10 @@ onMounted(async () => {
     <h2>Enemies report</h2>
     <p class="muted">Heroes you've faced on the opposing team.</p>
     <p v-if="error" class="error">{{ error }}</p>
-    <div v-if="heroes.length" class="table-scroll card">
+    <div v-if="loading && !heroes.length" class="table-scroll card">
+      <p class="muted">Loading…</p>
+    </div>
+    <div v-else-if="heroes.length" class="table-scroll card">
       <table>
       <thead>
         <tr>
