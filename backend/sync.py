@@ -16,6 +16,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 _log = logging.getLogger(__name__)
 
 VALVE_DETAIL_DELAY = 1.0
+RECENT_MATCH_RECONCILE_COUNT = 25
 
 
 def match_exists(conn, match_id: int) -> bool:
@@ -80,6 +81,46 @@ def _seed_annotation_role(conn, match_id: int, role: str | None) -> None:
         )
 
 
+def _sync_match_from_summary(
+    conn,
+    config,
+    client: OpenDotaClient,
+    heroes: dict[int, dict[str, str]],
+    summary: dict,
+    stats: dict,
+    force_refresh: bool,
+) -> None:
+    match_id = int(summary["match_id"])
+    exists = match_exists(conn, match_id)
+
+    if exists and not force_refresh:
+        stats["skipped"] += 1
+        return
+
+    try:
+        full = client.get_match(match_id)
+        parsed = parse_opendota_match(full, config.account_id, heroes)
+        upsert_parsed_match(conn, parsed, preserve_my_role=True)
+
+        my_role = parsed["match"].get("my_role")
+        if my_role and not exists:
+            _seed_annotation_role(conn, match_id, my_role)
+
+        if config.sync_source == "both":
+            _try_valve_supplement(conn, config, match_id, config.account_id)
+
+        conn.commit()
+
+        if exists:
+            stats["updated"] += 1
+        else:
+            stats["inserted"] += 1
+
+    except Exception as e:
+        _log.error("Failed match %s: %s", match_id, e)
+        stats["errors"] += 1
+
+
 def sync_opendota(
     conn,
     config,
@@ -93,15 +134,47 @@ def sync_opendota(
         "source": "opendota",
         "list_fetched": 0,
         "candidates": 0,
+        "recent_reconcile_count": RECENT_MATCH_RECONCILE_COUNT,
         "inserted": 0,
         "updated": 0,
         "skipped": 0,
         "errors": 0,
     }
 
-    offset = 0
+    offset = RECENT_MATCH_RECONCILE_COUNT
     page_size = min(config.matches_per_request, 100)
     stop = False
+    processed_match_ids: set[int] = set()
+
+    # Always reconcile the most recent matches so delayed OpenDota availability
+    # cannot cause permanent gaps in the local SQLite store.
+    try:
+        recent_batch = client.get_player_matches(
+            config.account_id,
+            limit=RECENT_MATCH_RECONCILE_COUNT,
+            offset=0,
+        )
+    except Exception as e:
+        _log.error("OpenDota recent match reconciliation failed: %s", e)
+        raise
+
+    stats["list_fetched"] += len(recent_batch)
+    for summary in recent_batch:
+        match_id = int(summary["match_id"])
+        processed_match_ids.add(match_id)
+        stats["candidates"] += 1
+        _sync_match_from_summary(
+            conn,
+            config,
+            client,
+            heroes,
+            summary,
+            stats,
+            force_refresh,
+        )
+        if max_matches and stats["inserted"] + stats["updated"] >= max_matches:
+            stop = True
+            break
 
     while not stop:
         try:
@@ -124,36 +197,24 @@ def sync_opendota(
 
         for summary in in_range:
             match_id = int(summary["match_id"])
+            if match_id in processed_match_ids:
+                continue
+            processed_match_ids.add(match_id)
             stats["candidates"] += 1
-            exists = match_exists(conn, match_id)
-
-            if exists and not force_refresh:
+            if match_exists(conn, match_id) and not force_refresh:
                 stats["skipped"] += 1
                 stop = True
                 break
 
-            try:
-                full = client.get_match(match_id)
-                parsed = parse_opendota_match(full, config.account_id, heroes)
-                upsert_parsed_match(conn, parsed, preserve_my_role=True)
-
-                my_role = parsed["match"].get("my_role")
-                if my_role and not exists:
-                    _seed_annotation_role(conn, match_id, my_role)
-
-                if config.sync_source == "both":
-                    _try_valve_supplement(conn, config, match_id, config.account_id)
-
-                conn.commit()
-
-                if exists:
-                    stats["updated"] += 1
-                else:
-                    stats["inserted"] += 1
-
-            except Exception as e:
-                _log.error("Failed match %s: %s", match_id, e)
-                stats["errors"] += 1
+            _sync_match_from_summary(
+                conn,
+                config,
+                client,
+                heroes,
+                summary,
+                stats,
+                force_refresh,
+            )
 
             if max_matches and stats["inserted"] + stats["updated"] >= max_matches:
                 stop = True
