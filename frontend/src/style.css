@@ -547,6 +547,77 @@ textarea {
   background: linear-gradient(135deg, rgba(88, 166, 255, 0.08), transparent);
 }
 
+.match-windows-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.match-window-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.match-window-input input {
+  width: 5rem;
+}
+
+.match-windows-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.match-windows-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 0.65rem;
+}
+
+.timeline-window-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.timeline-window-range {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 0.35rem;
+}
+
+.timeline-window-record {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.timeline-window-rate {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 740px) {
+  .match-windows-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .match-windows-controls > .btn {
+    width: 100%;
+  }
+
+  .match-windows-timeline {
+    grid-template-columns: 1fr;
+  }
+}
+
 video {
   width: 100%;
   max-width: 640px;

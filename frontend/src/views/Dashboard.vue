@@ -1,11 +1,16 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api/client'
 import RankChart from '../components/RankChart.vue'
 
 const summary = ref(null)
 const rankPoints = ref([])
 const error = ref(null)
+const matchWindowSize = ref(25)
+const matchWindows = ref([])
+const matchWindowsTotalMatches = ref(0)
+const matchWindowOffset = ref(0)
+const visibleWindowCount = 4
 
 const RANK_ICON_BASE = 'https://www.opendota.com/assets/images/dota2/rank_icons'
 const MEDAL_ICON_INDEX = {
@@ -58,16 +63,73 @@ function eventLabel(event) {
   return ''
 }
 
+function formatChunkBoundary(ts) {
+  if (!ts) return '—'
+  return new Date(ts * 1000).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'numeric',
+    day: 'numeric',
+  })
+}
+
+const visibleMatchWindows = computed(() =>
+  matchWindows.value.slice(matchWindowOffset.value, matchWindowOffset.value + visibleWindowCount)
+)
+
+const canShiftWindowsBack = computed(
+  () => matchWindowOffset.value + visibleWindowCount < matchWindows.value.length
+)
+
+const canShiftWindowsForward = computed(() => matchWindowOffset.value > 0)
+
+async function loadMatchWindows() {
+  const data = await api.matchWindows(matchWindowSize.value)
+  matchWindows.value = data.chunks || []
+  matchWindowsTotalMatches.value = data.total_matches || 0
+  matchWindowOffset.value = 0
+}
+
+function shiftWindowsBack() {
+  if (!canShiftWindowsBack.value) return
+  matchWindowOffset.value = Math.min(
+    matchWindowOffset.value + visibleWindowCount,
+    Math.max(0, matchWindows.value.length - visibleWindowCount)
+  )
+}
+
+function shiftWindowsForward() {
+  if (!canShiftWindowsForward.value) return
+  matchWindowOffset.value = Math.max(0, matchWindowOffset.value - visibleWindowCount)
+}
+
 async function load() {
   error.value = null
   try {
-    summary.value = await api.summary()
-    const prog = await api.rankProgression(true)
+    const [summaryData, prog] = await Promise.all([
+      api.summary(),
+      api.rankProgression(true),
+    ])
+    summary.value = summaryData
     rankPoints.value = prog.points
+    await loadMatchWindows()
   } catch (e) {
     error.value = e.message
   }
 }
+
+watch(matchWindowSize, async (next) => {
+  const clamped = Math.max(1, Math.min(200, Math.trunc(Number(next) || 1)))
+  if (clamped !== next) {
+    matchWindowSize.value = clamped
+    return
+  }
+  try {
+    error.value = null
+    await loadMatchWindows()
+  } catch (e) {
+    error.value = e.message
+  }
+})
 
 onMounted(load)
 </script>
@@ -169,45 +231,57 @@ onMounted(load)
       </div>
     </div>
 
-    <div v-if="summary?.splits?.length" class="card">
-      <h3 style="margin-top: 0">Splits</h3>
-      <div class="table-scroll">
-        <table>
-        <thead>
-          <tr>
-            <th>Window</th>
-            <th>W / L</th>
-            <th>Win rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="split in summary.splits" :key="split.window">
-            <td>Last {{ split.window }}</td>
-            <td>
-              <template v-if="split.games">
-                <span class="value-success">{{ split.wins }}</span>
-                /
-                <span class="value-danger">{{ split.losses }}</span>
-              </template>
-              <span v-else class="value-muted">—</span>
-            </td>
-            <td>
-              <span
-                v-if="split.games"
-                :class="{
-                  'value-success': split.win_rate >= 0.5,
-                  'value-danger': split.win_rate < 0.5,
-                }"
-              >
-                {{ (split.win_rate * 100).toFixed(0) }}%
-              </span>
-              <span v-else class="value-muted">—</span>
-            </td>
-          </tr>
-        </tbody>
-        </table>
+    <div class="card">
+      <div class="match-windows-header">
+        <h3 style="margin: 0">Match windows timeline</h3>
+        <label class="match-window-input">
+          X matches
+          <input
+            v-model.number="matchWindowSize"
+            type="number"
+            min="1"
+            max="200"
+            step="1"
+          />
+        </label>
       </div>
-      <p class="muted">Win/loss over your most recent matches by start time.</p>
+
+      <div v-if="matchWindows.length" class="match-windows-controls">
+        <button class="btn" :disabled="!canShiftWindowsForward" @click="shiftWindowsForward">&larr;</button>
+        <div class="match-windows-timeline">
+          <article
+            v-for="chunk in visibleMatchWindows"
+            :key="`${chunk.chunk_index}-${chunk.start_time}`"
+            class="timeline-window-item"
+          >
+            <div class="timeline-window-range">
+              {{ formatChunkBoundary(chunk.start_time) }} - {{ formatChunkBoundary(chunk.end_time) }}
+            </div>
+            <div class="timeline-window-record">
+              <span class="value-success">{{ chunk.wins }}</span>
+              /
+              <span class="value-danger">{{ chunk.losses }}</span>
+            </div>
+            <div
+              class="timeline-window-rate"
+              :class="{
+                'value-success': chunk.win_rate >= 0.5,
+                'value-danger': chunk.win_rate < 0.5,
+              }"
+            >
+              {{ (chunk.win_rate * 100).toFixed(0) }}%
+            </div>
+          </article>
+        </div>
+        <button class="btn" :disabled="!canShiftWindowsBack" @click="shiftWindowsBack">&rarr;</button>
+      </div>
+
+      <p v-else class="muted">No matches available yet for timeline windows.</p>
+
+      <p class="muted">
+        Showing wins/losses grouped into chunks of {{ matchWindowSize }} matches
+        across {{ matchWindowsTotalMatches }} total matches.
+      </p>
     </div>
 
     <div class="card">
