@@ -207,6 +207,46 @@ function computeRecentSplits(db) {
   })
 }
 
+function parseChunkWindow(value) {
+  const raw = Number(value)
+  if (!Number.isFinite(raw)) return 25
+  return Math.max(1, Math.min(200, Math.trunc(raw)))
+}
+
+function computeMatchWindows(db, windowSize) {
+  const rows = db
+    .prepare('SELECT start_time, won FROM matches ORDER BY start_time DESC')
+    .all()
+
+  const chunks = []
+  for (let i = 0; i < rows.length; i += windowSize) {
+    const slice = rows.slice(i, i + windowSize)
+    if (!slice.length) continue
+
+    const games = slice.length
+    const wins = slice.reduce((sum, match) => sum + (match.won ? 1 : 0), 0)
+    const losses = games - wins
+    const newest = slice[0]
+    const oldest = slice[slice.length - 1]
+
+    chunks.push({
+      chunk_index: chunks.length,
+      games,
+      wins,
+      losses,
+      win_rate: games ? Math.round((wins / games) * 1000) / 1000 : 0,
+      start_time: oldest.start_time ?? null,
+      end_time: newest.start_time ?? null,
+    })
+  }
+
+  return {
+    window: windowSize,
+    total_matches: rows.length,
+    chunks,
+  }
+}
+
 const TEAMMATE_HERO_STATS_SQL = `
   SELECT mp.hero_name, COUNT(*) AS games, SUM(mp.won) AS wins,
          ROUND(AVG(mp.kills), 1) AS avg_kills,
@@ -714,6 +754,12 @@ export function createRouter() {
       goal_medal: cfg.goalMedal,
       splits: computeRecentSplits(db),
     })
+  })
+
+  get('/stats/match-windows', (req, res) => {
+    const db = getDb()
+    const window = parseChunkWindow(req.query.window)
+    res.json(computeMatchWindows(db, window))
   })
 
   get('/stats/heroes', (_req, res) => {

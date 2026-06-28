@@ -52,6 +52,7 @@ export const api = {
     return request(`/api/journey?${q}`)
   },
   summary: () => request('/api/stats/summary'),
+  matchWindows: (window = 25) => request(`/api/stats/match-windows?window=${window}`),
   heroes: () => request('/api/stats/heroes'),
   teammates: () => request('/api/stats/teammates'),
   enemies: () => request('/api/stats/enemies'),
