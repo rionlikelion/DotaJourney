@@ -473,7 +473,7 @@ onMounted(async () => {
       </table>
     </div>
 
-    <div v-else-if="matches.length" class="pagination">
+    <div v-if="matches.length" class="pagination">
       <button class="btn" :disabled="page === 1" @click="goToPreviousPage">
         Previous
       </button>
